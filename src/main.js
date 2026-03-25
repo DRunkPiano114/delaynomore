@@ -4,6 +4,12 @@ import { initPet, setMood, setAnimation, walkToCenter, walkBack, playHappy } fro
 import { showBubble, hideBubble, showEyeRest } from './bubble.js';
 import { runOnboarding } from './onboarding.js';
 
+// Interpolation state for smooth 1-second display updates
+let lastBackendWorkSec = 0;
+let lastBackendIntervalSec = 2700;
+let lastBackendIsResting = false;
+let lastBackendTimestamp = Date.now();
+
 async function main() {
   const config = await invoke('get_config');
 
@@ -16,6 +22,36 @@ async function main() {
 
   // Create timer status bar
   createStatusBar();
+
+  // Fetch initial status so display is correct from the start
+  const initialStatus = await invoke('get_timer_status');
+  lastBackendWorkSec = initialStatus.workSec;
+  lastBackendIntervalSec = initialStatus.intervalSec;
+  lastBackendIsResting = initialStatus.isResting;
+  lastBackendTimestamp = Date.now();
+  updateStatusBar({
+    workSec: lastBackendWorkSec,
+    intervalSec: lastBackendIntervalSec,
+    isResting: lastBackendIsResting,
+  });
+
+  // 1-second interpolation for smooth display
+  setInterval(() => {
+    if (lastBackendIsResting) {
+      updateStatusBar({
+        workSec: lastBackendWorkSec,
+        intervalSec: lastBackendIntervalSec,
+        isResting: true,
+      });
+      return;
+    }
+    const elapsed = Math.floor((Date.now() - lastBackendTimestamp) / 1000);
+    updateStatusBar({
+      workSec: lastBackendWorkSec + elapsed,
+      intervalSec: lastBackendIntervalSec,
+      isResting: false,
+    });
+  }, 1000);
 
   // Event listeners
   await listen('pet:state_update', (event) => {
@@ -45,8 +81,13 @@ async function main() {
     walkBack();
   });
 
-  // Timer status updates
+  // Timer status updates — resync interpolation state
   await listen('timer:status', (event) => {
+    const { workSec, intervalSec, isResting } = event.payload;
+    lastBackendWorkSec = workSec;
+    lastBackendIntervalSec = intervalSec;
+    lastBackendIsResting = isResting;
+    lastBackendTimestamp = Date.now();
     updateStatusBar(event.payload);
   });
 }
