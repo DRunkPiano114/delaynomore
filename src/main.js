@@ -4,12 +4,6 @@ import { initPet, setMood, setAnimation, walkToCenter, walkBack, playHappy } fro
 import { showBubble, hideBubble, showEyeRest } from './bubble.js';
 import { runOnboarding } from './onboarding.js';
 
-// Interpolation state for smooth 1-second display updates
-let lastBackendWorkSec = 0;
-let lastBackendIntervalSec = 2700;
-let lastBackendIsResting = false;
-let lastBackendTimestamp = Date.now();
-
 async function main() {
   const config = await invoke('get_config');
 
@@ -20,38 +14,8 @@ async function main() {
     initPet(pet, config.pet_position);
   }
 
-  // Create timer status bar
-  createStatusBar();
-
-  // Fetch initial status so display is correct from the start
-  const initialStatus = await invoke('get_timer_status');
-  lastBackendWorkSec = initialStatus.workSec;
-  lastBackendIntervalSec = initialStatus.intervalSec;
-  lastBackendIsResting = initialStatus.isResting;
-  lastBackendTimestamp = Date.now();
-  updateStatusBar({
-    workSec: lastBackendWorkSec,
-    intervalSec: lastBackendIntervalSec,
-    isResting: lastBackendIsResting,
-  });
-
-  // 1-second interpolation for smooth display
-  setInterval(() => {
-    if (lastBackendIsResting) {
-      updateStatusBar({
-        workSec: lastBackendWorkSec,
-        intervalSec: lastBackendIntervalSec,
-        isResting: true,
-      });
-      return;
-    }
-    const elapsed = Math.floor((Date.now() - lastBackendTimestamp) / 1000);
-    updateStatusBar({
-      workSec: lastBackendWorkSec + elapsed,
-      intervalSec: lastBackendIntervalSec,
-      isResting: false,
-    });
-  }, 1000);
+  // Right-click context menu on pet
+  setupContextMenu();
 
   // Event listeners
   await listen('pet:state_update', (event) => {
@@ -80,83 +44,57 @@ async function main() {
     hideBubble();
     walkBack();
   });
+}
 
-  // Timer status updates — resync interpolation state
-  await listen('timer:status', (event) => {
-    const { workSec, intervalSec, isResting } = event.payload;
-    lastBackendWorkSec = workSec;
-    lastBackendIntervalSec = intervalSec;
-    lastBackendIsResting = isResting;
-    lastBackendTimestamp = Date.now();
-    updateStatusBar(event.payload);
+function setupContextMenu() {
+  const pet = document.getElementById('pet-container');
+  pet.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showContextMenu();
   });
 }
 
-function createStatusBar() {
-  const bar = document.createElement('div');
-  bar.id = 'status-bar';
-  bar.innerHTML = `
-    <div class="status-progress"><div class="status-fill"></div></div>
-    <div class="status-text">0:00</div>
-    <div class="status-controls">
-      <button class="status-btn" id="btn-debug" title="Debug menu">⚙</button>
-    </div>
-  `;
-  document.body.appendChild(bar);
-
-  // Debug menu on click
-  document.getElementById('btn-debug').addEventListener('click', toggleDebugMenu);
-}
-
-function updateStatusBar({ workSec, intervalSec, isResting }) {
-  const fill = document.querySelector('.status-fill');
-  const text = document.querySelector('.status-text');
-  if (!fill || !text) return;
-
-  const pct = Math.min(100, (workSec / intervalSec) * 100);
-  fill.style.width = pct + '%';
-
-  if (isResting) {
-    text.textContent = 'Resting...';
-    fill.style.background = 'var(--color-happy)';
-  } else {
-    const min = Math.floor(workSec / 60);
-    const sec = workSec % 60;
-    const target = Math.floor(intervalSec / 60);
-    text.textContent = `${min}:${String(sec).padStart(2, '0')} / ${target}min`;
-    fill.style.background = pct > 80 ? 'var(--color-sad)' : 'var(--color-primary)';
-  }
-}
-
-let debugMenuOpen = false;
-function toggleDebugMenu() {
-  const existing = document.getElementById('debug-menu');
-  if (existing) { existing.remove(); debugMenuOpen = false; return; }
-  debugMenuOpen = true;
+function showContextMenu() {
+  const existing = document.getElementById('context-menu');
+  if (existing) { existing.remove(); return; }
 
   const menu = document.createElement('div');
-  menu.id = 'debug-menu';
+  menu.id = 'context-menu';
   menu.innerHTML = `
-    <button class="debug-item" id="dbg-trigger">Trigger reminder now</button>
-    <button class="debug-item" id="dbg-1min">Set 1 min interval</button>
-    <button class="debug-item" id="dbg-5min">Set 5 min interval</button>
-    <button class="debug-item" id="dbg-reset">Reset default (45min)</button>
+    <button class="context-item" id="ctx-trigger">Trigger reminder now</button>
+    <div class="context-separator"></div>
+    <button class="context-item" id="ctx-1min">Set 1 min interval</button>
+    <button class="context-item" id="ctx-5min">Set 5 min interval</button>
+    <button class="context-item" id="ctx-reset">Reset default (45min)</button>
   `;
   document.body.appendChild(menu);
 
-  document.getElementById('dbg-trigger').addEventListener('click', async () => {
+  // Position above the pet
+  const pet = document.getElementById('pet-container');
+  const petRect = pet.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  let left = petRect.left + petRect.width / 2 - menuRect.width / 2;
+  let top = petRect.top - menuRect.height - 8;
+
+  // Keep within window bounds
+  left = Math.max(4, Math.min(left, window.innerWidth - menuRect.width - 4));
+  if (top < 4) top = petRect.bottom + 8; // flip below if no space above
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+
+  document.getElementById('ctx-trigger').addEventListener('click', async () => {
     await invoke('trigger_reminder');
     menu.remove();
   });
-  document.getElementById('dbg-1min').addEventListener('click', async () => {
+  document.getElementById('ctx-1min').addEventListener('click', async () => {
     await invoke('set_intervals', { bigRestMin: 1, eyeRestMin: 1 });
     menu.remove();
   });
-  document.getElementById('dbg-5min').addEventListener('click', async () => {
+  document.getElementById('ctx-5min').addEventListener('click', async () => {
     await invoke('set_intervals', { bigRestMin: 5, eyeRestMin: 3 });
     menu.remove();
   });
-  document.getElementById('dbg-reset').addEventListener('click', async () => {
+  document.getElementById('ctx-reset').addEventListener('click', async () => {
     await invoke('set_intervals', { bigRestMin: 45, eyeRestMin: 20 });
     menu.remove();
   });
@@ -164,7 +102,7 @@ function toggleDebugMenu() {
   // Close on outside click
   setTimeout(() => {
     document.addEventListener('click', function close(e) {
-      if (!menu.contains(e.target) && e.target.id !== 'btn-debug') {
+      if (!menu.contains(e.target)) {
         menu.remove();
         document.removeEventListener('click', close);
       }

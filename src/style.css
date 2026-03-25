@@ -247,68 +247,41 @@ body {
   border-color: var(--color-primary);
 }
 
-/* === Status bar === */
-#status-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.9);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  z-index: 5;
-  font-size: 11px;
-}
-.status-progress {
-  flex: 1;
-  height: 4px;
-  background: #E5E7EB;
-  border-radius: 2px;
-  overflow: hidden;
-}
-.status-fill {
-  height: 100%;
-  width: 0%;
-  background: var(--color-primary);
-  border-radius: 2px;
-  transition: width 1s linear, background 0.3s;
-}
-.status-text {
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  min-width: 80px;
-}
-.status-controls { display: flex; }
-.status-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 2px 4px;
-  border-radius: 4px;
-  color: var(--color-text-muted);
-}
-.status-btn:hover { background: rgba(0,0,0,0.05); }
-
-/* === Debug menu === */
-#debug-menu {
-  position: absolute;
-  bottom: 28px;
-  right: 8px;
+/* === Context menu (right-click on pet) === */
+#context-menu {
+  position: fixed;
   background: var(--color-bg-bubble);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08);
   z-index: 200;
   overflow: hidden;
+  padding: 4px 0;
+  animation: menu-in 0.15s ease-out;
 }
-.debug-item {
+#context-menu::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: var(--color-bg-bubble);
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.05);
+}
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.context-separator {
+  height: 1px;
+  background: rgba(0,0,0,0.08);
+  margin: 4px 0;
+}
+.context-item {
   display: block;
   width: 100%;
-  padding: 8px 14px;
+  padding: 7px 14px;
   border: none;
   background: none;
   font-size: 13px;
@@ -317,6 +290,8 @@ body {
   text-align: left;
   white-space: nowrap;
   font-family: inherit;
+  border-radius: 0;
+  transition: background 0.1s;
 }
-.debug-item:hover { background: rgba(0,0,0,0.04); }
-.debug-item + .debug-item { border-top: 1px solid rgba(0,0,0,0.06); }
+.context-item:hover { background: rgba(0,0,0,0.05); }
+.context-item:active { background: rgba(0,0,0,0.08); }

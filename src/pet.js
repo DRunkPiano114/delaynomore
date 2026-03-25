@@ -55,6 +55,7 @@ export function initPet(container, position) {
 
   // Drag handling
   container.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return; // Only left-click drag
     isDragging = true;
     dragOffsetX = e.clientX - container.getBoundingClientRect().left;
     dragOffsetY = e.clientY - container.getBoundingClientRect().top;
