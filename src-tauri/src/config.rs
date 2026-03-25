@@ -9,8 +9,6 @@ pub struct AppConfig {
     pub eye_rest_interval_min: u32,
     pub rest_duration_min: u32,
     pub snooze_duration_min: u32,
-    pub llm_api_key: Option<String>,
-    pub llm_provider: String,
     pub pet_position: (f64, f64),
     pub onboarding_done: bool,
 }
@@ -23,8 +21,6 @@ impl Default for AppConfig {
             eye_rest_interval_min: 20,
             rest_duration_min: 5,
             snooze_duration_min: 15,
-            llm_api_key: None,
-            llm_provider: "claude".to_string(),
             pet_position: (0.0, 0.0),
             onboarding_done: false,
         }

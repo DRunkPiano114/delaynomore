@@ -42,16 +42,6 @@ CREATE TABLE IF NOT EXISTS sessions (
     rest_count INTEGER NOT NULL DEFAULT 0,
     reminders_accepted INTEGER NOT NULL DEFAULT 0,
     reminders_ignored INTEGER NOT NULL DEFAULT 0
-);
-CREATE TABLE IF NOT EXISTS llm_cache (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    cache_key TEXT NOT NULL UNIQUE,
-    message TEXT NOT NULL,
-    created_at TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS config (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
 );";
 
 impl StatsStore {
@@ -213,50 +203,6 @@ impl StatsStore {
         }
     }
 
-    // LLM cache
-    pub fn get_cached_message(&self, cache_key: &str) -> Option<String> {
-        let guard = self.conn.lock().unwrap();
-        let conn = guard.as_ref()?;
-        conn.query_row(
-            "SELECT message FROM llm_cache WHERE cache_key = ?1 AND datetime(created_at) > datetime('now', '-7 days')",
-            params![cache_key],
-            |row| row.get(0),
-        )
-        .ok()
-    }
-
-    pub fn cache_message(&self, cache_key: &str, message: &str) {
-        let guard = self.conn.lock().unwrap();
-        if let Some(ref conn) = *guard {
-            let now = Local::now().to_rfc3339();
-            let _ = conn.execute(
-                "INSERT OR REPLACE INTO llm_cache (cache_key, message, created_at) VALUES (?1, ?2, ?3)",
-                params![cache_key, message, now],
-            );
-        }
-    }
-
-    // Key-value config storage (for first_use_date etc.)
-    pub fn get_config_value(&self, key: &str) -> Option<String> {
-        let guard = self.conn.lock().unwrap();
-        let conn = guard.as_ref()?;
-        conn.query_row(
-            "SELECT value FROM config WHERE key = ?1",
-            params![key],
-            |row| row.get(0),
-        )
-        .ok()
-    }
-
-    pub fn set_config_value(&self, key: &str, value: &str) {
-        let guard = self.conn.lock().unwrap();
-        if let Some(ref conn) = *guard {
-            let _ = conn.execute(
-                "INSERT OR REPLACE INTO config (key, value) VALUES (?1, ?2)",
-                params![key, value],
-            );
-        }
-    }
 }
 
 #[cfg(test)]
@@ -322,27 +268,4 @@ mod tests {
         assert_eq!(stats.reminders_ignored, 0);
     }
 
-    #[test]
-    fn test_llm_cache() {
-        let store = StatsStore::in_memory();
-        store.cache_message("Happy:30-60:afternoon", "Time for a break");
-        let cached = store.get_cached_message("Happy:30-60:afternoon");
-        assert_eq!(cached, Some("Time for a break".to_string()));
-    }
-
-    #[test]
-    fn test_llm_cache_miss() {
-        let store = StatsStore::in_memory();
-        assert_eq!(store.get_cached_message("nonexistent"), None);
-    }
-
-    #[test]
-    fn test_config_kv() {
-        let store = StatsStore::in_memory();
-        store.set_config_value("first_use_date", "2026-01-01");
-        assert_eq!(
-            store.get_config_value("first_use_date"),
-            Some("2026-01-01".to_string())
-        );
-    }
 }

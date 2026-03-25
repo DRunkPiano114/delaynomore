@@ -6,7 +6,7 @@ A macOS desktop pet app that keeps you company while coding and reminds you to t
 
 - **Framework**: Tauri v2 (Rust backend + Web frontend)
 - **Frontend**: Vanilla HTML/CSS/JS, SVG cat with CSS animations
-- **Backend**: Rust — timer engine, state machine, LLM client, SQLite stats
+- **Backend**: Rust — timer engine, state machine, SQLite stats
 - **Package Manager**: pnpm
 
 ## Project Structure
@@ -22,9 +22,8 @@ src/                    # Web frontend
 src-tauri/src/          # Rust backend
 ├── lib.rs              # App setup, plugin registration
 ├── timer.rs            # Timer engine (core orchestrator)
-├── state_machine.rs    # Mood (Happy/Normal/Sad) + affinity stages
-├── llm.rs              # Claude/OpenAI API + cache + fallback messages
-├── stats.rs            # SQLite stats store + LLM cache
+├── state_machine.rs    # Mood (Happy/Normal/Sad) + preset reminder messages
+├── stats.rs            # SQLite stats store
 ├── config.rs           # JSON config persistence
 ├── tray.rs             # System tray menu
 ├── commands.rs         # Tauri invoke command handlers
@@ -45,4 +44,4 @@ cd src-tauri && cargo test  # Run Rust unit tests
 - **Rust → Web**: events via `app.emit("pet:*")` → frontend `listen()`
 - **Web → Rust**: commands via `invoke("command_name")`
 - **Idle detection**: `CGEventSourceSecondsSinceLastEventType()` — no permissions needed
-- **LLM**: prefetched at 40min, displayed at 45min; falls back to 23 preset messages
+- **Reminder messages**: 23 preset messages, randomly selected based on current mood

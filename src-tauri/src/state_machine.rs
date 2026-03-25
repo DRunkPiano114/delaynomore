@@ -1,4 +1,3 @@
-use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -26,28 +25,16 @@ impl Mood {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum AffinityStage {
-    Stranger,
-    Acquaintance,
-    Friend,
-    CloseFriend,
-}
-
 pub struct StateMachine {
     pub mood: Mood,
     pub ignore_count: u32,
-    pub first_use_date: NaiveDate,
-    pub interaction_count: u32,
 }
 
 impl StateMachine {
-    pub fn new(first_use_date: NaiveDate) -> Self {
+    pub fn new() -> Self {
         Self {
             mood: Mood::Happy,
             ignore_count: 0,
-            first_use_date,
-            interaction_count: 0,
         }
     }
 
@@ -67,53 +54,68 @@ impl StateMachine {
     pub fn on_rest_completed(&mut self) {
         self.mood = Mood::Happy;
         self.ignore_count = 0;
-        self.interaction_count += 1;
     }
 
     pub fn on_snooze(&mut self) {
         self.on_reminder_ignored();
     }
+}
 
-    pub fn get_affinity_stage(&self) -> AffinityStage {
-        let days = (Local::now().date_naive() - self.first_use_date).num_days();
-        match days {
-            0..=2 => AffinityStage::Stranger,
-            3..=6 => AffinityStage::Acquaintance,
-            7..=13 => AffinityStage::Friend,
-            _ => AffinityStage::CloseFriend,
-        }
-    }
+const HAPPY_MESSAGES: &[&str] = &[
+    "Great work! Time to stretch and move around!",
+    "Grab some water, you deserve a break~",
+    "The code won't run away, take a break first!",
+    "Stand up and walk around, inspiration might strike~",
+    "You've been so productive today! Rest up and keep going~",
+    "Eyes feeling tired? Look out the window for a bit~",
+    "Resting helps you code even better!",
+    "Coffee? Nah, water is healthier~",
+];
 
-    pub fn get_persona_prompt(&self, pet_name: &str) -> String {
-        match self.get_affinity_stage() {
-            AffinityStage::Stranger => format!(
-                "You are a desktop cat named {}. You just met the user, so be polite and formal. Use short, warm words to remind them to rest.",
-                pet_name
-            ),
-            AffinityStage::Acquaintance => format!(
-                "You are a desktop cat named {}. You're getting to know the user, so be relaxed and playful. Use a lighthearted tone to remind them to rest.",
-                pet_name
-            ),
-            AffinityStage::Friend => format!(
-                "You are a desktop cat named {}. You and the user are friends now, so be warm and witty. Use a friendly tone to remind them to rest.",
-                pet_name
-            ),
-            AffinityStage::CloseFriend => format!(
-                "You are a desktop cat named {}. You and the user are close friends, so chat like old buddies. Use an intimate but caring tone to remind them to rest.",
-                pet_name
-            ),
-        }
-    }
+const NORMAL_MESSAGES: &[&str] = &[
+    "You've been working for a while, time for a break~",
+    "Health is wealth, take a short rest!",
+    "Sitting too long isn't great for you, move around~",
+    "The keyboard can wait, your body can't~",
+    "Work matters, but health matters more. Take a break~",
+    "Time to move! Stand up and take a walk~",
+    "Don't forget to drink water and rest a bit~",
+];
+
+const SAD_MESSAGES: &[&str] = &[
+    "You've ignored me several times... please rest now",
+    "Please take a break, I'm worried about you",
+    "I'll be sad if you don't rest...",
+    "Your body is sending alarms, please take a break",
+    "I know you're busy, but health really matters",
+    "Please, just 5 minutes of rest, okay?",
+    "You've been working way too long, I'm worried...",
+    "If not for yourself, rest for me...",
+];
+
+pub fn get_random_message(mood: Mood) -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as usize;
+
+    let messages = match mood {
+        Mood::Happy => HAPPY_MESSAGES,
+        Mood::Normal => NORMAL_MESSAGES,
+        Mood::Sad => SAD_MESSAGES,
+    };
+
+    messages[seed % messages.len()].to_string()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::TimeDelta;
 
     #[test]
     fn test_happy_to_normal_after_30min() {
-        let mut sm = StateMachine::new(Local::now().date_naive());
+        let mut sm = StateMachine::new();
         assert_eq!(sm.mood, Mood::Happy);
         sm.on_work_duration(31);
         assert_eq!(sm.mood, Mood::Normal);
@@ -121,14 +123,14 @@ mod tests {
 
     #[test]
     fn test_no_transition_under_30min() {
-        let mut sm = StateMachine::new(Local::now().date_naive());
+        let mut sm = StateMachine::new();
         sm.on_work_duration(29);
         assert_eq!(sm.mood, Mood::Happy);
     }
 
     #[test]
     fn test_normal_to_sad_after_3_ignores() {
-        let mut sm = StateMachine::new(Local::now().date_naive());
+        let mut sm = StateMachine::new();
         sm.mood = Mood::Normal;
         sm.on_reminder_ignored();
         sm.on_reminder_ignored();
@@ -139,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_rest_resets_to_happy() {
-        let mut sm = StateMachine::new(Local::now().date_naive());
+        let mut sm = StateMachine::new();
         sm.mood = Mood::Sad;
         sm.ignore_count = 5;
         sm.on_rest_completed();
@@ -149,56 +151,15 @@ mod tests {
 
     #[test]
     fn test_snooze_counts_as_ignore() {
-        let mut sm = StateMachine::new(Local::now().date_naive());
+        let mut sm = StateMachine::new();
         sm.on_snooze();
         assert_eq!(sm.ignore_count, 1);
     }
 
     #[test]
-    fn test_affinity_stranger() {
-        let sm = StateMachine::new(Local::now().date_naive());
-        assert_eq!(sm.get_affinity_stage(), AffinityStage::Stranger);
-    }
-
-    #[test]
-    fn test_affinity_acquaintance() {
-        let date = Local::now().date_naive() - TimeDelta::days(4);
-        let sm = StateMachine::new(date);
-        assert_eq!(sm.get_affinity_stage(), AffinityStage::Acquaintance);
-    }
-
-    #[test]
-    fn test_affinity_friend() {
-        let date = Local::now().date_naive() - TimeDelta::days(10);
-        let sm = StateMachine::new(date);
-        assert_eq!(sm.get_affinity_stage(), AffinityStage::Friend);
-    }
-
-    #[test]
-    fn test_affinity_close_friend() {
-        let date = Local::now().date_naive() - TimeDelta::days(20);
-        let sm = StateMachine::new(date);
-        assert_eq!(sm.get_affinity_stage(), AffinityStage::CloseFriend);
-    }
-
-    #[test]
-    fn test_persona_changes_with_affinity() {
-        let sm_new = StateMachine::new(Local::now().date_naive());
-        let sm_old = StateMachine::new(Local::now().date_naive() - TimeDelta::days(20));
-        let prompt_new = sm_new.get_persona_prompt("Kitty");
-        let prompt_old = sm_old.get_persona_prompt("Kitty");
-        assert_ne!(prompt_new, prompt_old);
-        assert!(prompt_new.contains("polite"));
-        assert!(prompt_old.contains("old buddies"));
-    }
-
-    #[test]
-    fn test_interaction_count_increments() {
-        let mut sm = StateMachine::new(Local::now().date_naive());
-        assert_eq!(sm.interaction_count, 0);
-        sm.on_rest_completed();
-        assert_eq!(sm.interaction_count, 1);
-        sm.on_rest_completed();
-        assert_eq!(sm.interaction_count, 2);
+    fn test_random_messages_not_empty() {
+        assert!(!get_random_message(Mood::Happy).is_empty());
+        assert!(!get_random_message(Mood::Normal).is_empty());
+        assert!(!get_random_message(Mood::Sad).is_empty());
     }
 }

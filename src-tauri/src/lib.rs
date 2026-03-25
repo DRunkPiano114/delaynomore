@@ -1,7 +1,6 @@
 mod commands;
 mod config;
 mod idle;
-mod llm;
 mod state_machine;
 mod stats;
 mod timer;
@@ -9,12 +8,10 @@ mod tray;
 
 use commands::AppState;
 use config::ConfigManager;
-use llm::LlmClient;
 use state_machine::StateMachine;
 use stats::StatsStore;
 use timer::TimerState;
 
-use chrono::Local;
 use std::sync::Arc;
 use tauri::Manager;
 use tokio::sync::Mutex;
@@ -36,21 +33,7 @@ pub fn run() {
             let stats = Arc::new(StatsStore::new(data_dir.join("stats.db")));
 
             // State machine
-            let first_use = stats
-                .get_config_value("first_use_date")
-                .and_then(|s| s.parse().ok())
-                .unwrap_or_else(|| {
-                    let today = Local::now().date_naive();
-                    stats.set_config_value("first_use_date", &today.to_string());
-                    today
-                });
-            let state_machine = Arc::new(Mutex::new(StateMachine::new(first_use)));
-
-            // LLM client
-            let llm_client = Arc::new(LlmClient::new(
-                cfg.llm_api_key.clone(),
-                cfg.llm_provider.clone(),
-            ));
+            let state_machine = Arc::new(Mutex::new(StateMachine::new()));
 
             // Timer
             let timer = Arc::new(Mutex::new(TimerState::new(cfg.big_rest_interval_min)));
@@ -74,7 +57,7 @@ pub fn run() {
             });
 
             // Start background timer
-            timer::start_timer(handle, timer, config, state_machine, stats, llm_client);
+            timer::start_timer(handle, timer, config, state_machine, stats);
 
             Ok(())
         })

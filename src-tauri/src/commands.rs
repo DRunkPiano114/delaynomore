@@ -1,6 +1,5 @@
 use crate::config::ConfigManager;
-use crate::llm::get_fallback_message;
-use crate::state_machine::StateMachine;
+use crate::state_machine::{get_random_message, StateMachine};
 use crate::stats::{StatsStore, TodayStats};
 use crate::timer::{self, TimerState};
 use serde::Serialize;
@@ -19,6 +18,17 @@ pub struct AppState {
 pub async fn user_rest(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
     timer::handle_user_rest(&state.timer, &state.state_machine, &state.stats).await;
 
+    let ts = state.timer.lock().await;
+    let _ = app.emit(
+        "timer:status",
+        serde_json::json!({
+            "workSec": ts.continuous_work_sec,
+            "intervalSec": ts.effective_interval_sec,
+            "isResting": ts.is_resting,
+        }),
+    );
+    drop(ts);
+
     let sm = state.state_machine.lock().await;
     let mood = sm.mood;
     drop(sm);
@@ -34,6 +44,17 @@ pub async fn user_rest(state: State<'_, AppState>, app: AppHandle) -> Result<(),
 pub async fn user_snooze(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
     timer::handle_user_snooze(&state.timer, &state.config, &state.state_machine, &state.stats)
         .await;
+
+    let ts = state.timer.lock().await;
+    let _ = app.emit(
+        "timer:status",
+        serde_json::json!({
+            "workSec": ts.continuous_work_sec,
+            "intervalSec": ts.effective_interval_sec,
+            "isResting": ts.is_resting,
+        }),
+    );
+    drop(ts);
 
     let sm = state.state_machine.lock().await;
     let mood = sm.mood;
@@ -80,6 +101,7 @@ pub async fn get_today_stats(state: State<'_, AppState>) -> Result<TodayStats, S
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TimerStatus {
     pub work_sec: u64,
     pub interval_sec: u64,
@@ -101,14 +123,25 @@ pub async fn set_intervals(
     big_rest_min: u32,
     eye_rest_min: u32,
     state: State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<(), String> {
     state.config.update(|c| {
         c.big_rest_interval_min = big_rest_min;
         c.eye_rest_interval_min = eye_rest_min;
     });
-    // Also update the live timer's effective interval
+    // Update the live timer and reset progress
     let mut ts = state.timer.lock().await;
     ts.effective_interval_sec = (big_rest_min as u64) * 60;
+    ts.continuous_work_sec = 0;
+    ts.big_rest_triggered = false;
+    let _ = app.emit(
+        "timer:status",
+        serde_json::json!({
+            "workSec": ts.continuous_work_sec,
+            "intervalSec": ts.effective_interval_sec,
+            "isResting": ts.is_resting,
+        }),
+    );
     Ok(())
 }
 
@@ -118,7 +151,7 @@ pub async fn trigger_reminder(state: State<'_, AppState>, app: AppHandle) -> Res
     let mood = sm.mood;
     drop(sm);
 
-    let msg = get_fallback_message(mood);
+    let msg = get_random_message(mood);
     let ts = state.timer.lock().await;
     let work_dur = ts.continuous_work_sec;
     drop(ts);
