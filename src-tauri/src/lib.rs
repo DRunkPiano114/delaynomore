@@ -39,8 +39,10 @@ pub fn run() {
             let timer = Arc::new(Mutex::new(TimerState::new(cfg.big_rest_interval_min)));
 
             // System tray
-            let tray_icon = tray::setup_tray(&handle, &config, state_machine::Mood::Happy, 0, 0)
-                .expect("failed to setup tray");
+            let cfg_interval = cfg.big_rest_interval_min as u64 * 60;
+            let tray_icon =
+                tray::setup_tray(&handle, &config, state_machine::Mood::Happy, 0, cfg_interval, false, 0)
+                    .expect("failed to setup tray");
 
             tray_icon.on_menu_event(move |app, event| {
                 if event.id().as_ref() == "quit" {

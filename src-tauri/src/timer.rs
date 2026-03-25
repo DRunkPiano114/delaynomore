@@ -2,6 +2,7 @@ use crate::config::ConfigManager;
 use crate::idle;
 use crate::state_machine::{get_random_message, StateMachine};
 use crate::stats::StatsStore;
+use crate::tray;
 use std::sync::Arc;
 use std::time::Instant;
 use tauri::{AppHandle, Emitter};
@@ -42,8 +43,28 @@ pub fn start_timer(
     tauri::async_runtime::spawn(async move {
         loop {
             let ts = timer.lock().await;
-            let tick_secs = if ts.is_resting { 3 } else { 10 };
+            let tick_secs = 1;
+            let tray_work_sec = ts.continuous_work_sec;
+            let tray_interval_sec = ts.effective_interval_sec;
+            let tray_is_resting = ts.is_resting;
             drop(ts);
+
+            // Update tray menu with current state
+            {
+                let sm = state_machine.lock().await;
+                let mood = sm.mood;
+                drop(sm);
+                let rest_count = stats.get_today_stats().rest_count as u32;
+                tray::update_tray(
+                    &app,
+                    &config,
+                    mood,
+                    tray_work_sec,
+                    tray_interval_sec,
+                    tray_is_resting,
+                    rest_count,
+                );
+            }
 
             sleep(Duration::from_secs(tick_secs)).await;
 

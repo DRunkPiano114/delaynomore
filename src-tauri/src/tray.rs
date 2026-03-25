@@ -4,18 +4,22 @@ use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::{TrayIcon, TrayIconBuilder};
 use tauri::AppHandle;
 
+pub const TRAY_ID: &str = "main";
+
 pub fn setup_tray(
     app: &AppHandle,
     config: &ConfigManager,
     mood: Mood,
-    work_min: u32,
+    work_sec: u64,
+    interval_sec: u64,
+    is_resting: bool,
     rest_count: u32,
 ) -> Result<TrayIcon, Box<dyn std::error::Error>> {
-    let menu = build_menu(app, config, mood, work_min, rest_count)?;
+    let menu = build_menu(app, config, mood, work_sec, interval_sec, is_resting, rest_count)?;
     let icon_rgba = make_orange_icon();
     let icon = tauri::image::Image::new_owned(icon_rgba, 16, 16);
 
-    let tray = TrayIconBuilder::new()
+    let tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .menu(&menu)
         .show_menu_on_left_click(true)
@@ -25,19 +29,42 @@ pub fn setup_tray(
     Ok(tray)
 }
 
+pub fn update_tray(
+    app: &AppHandle,
+    config: &ConfigManager,
+    mood: Mood,
+    work_sec: u64,
+    interval_sec: u64,
+    is_resting: bool,
+    rest_count: u32,
+) {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        if let Ok(menu) =
+            build_menu(app, config, mood, work_sec, interval_sec, is_resting, rest_count)
+        {
+            let _ = tray.set_menu(Some(menu));
+        }
+    }
+}
+
 pub fn build_menu(
     app: &AppHandle,
     config: &ConfigManager,
     mood: Mood,
-    work_min: u32,
+    work_sec: u64,
+    interval_sec: u64,
+    is_resting: bool,
     rest_count: u32,
 ) -> Result<tauri::menu::Menu<tauri::Wry>, Box<dyn std::error::Error>> {
     let cfg = config.get();
 
-    let work_display = if work_min >= 60 {
-        format!("\u{23f1} Worked {}h {}m", work_min / 60, work_min % 60)
+    let timer_display = if is_resting {
+        "\u{1f634} Resting...".to_string()
     } else {
-        format!("\u{23f1} Worked {}m", work_min)
+        let min = work_sec / 60;
+        let sec = work_sec % 60;
+        let target_min = interval_sec / 60;
+        format!("\u{23f1} Working {}:{:02} / {}min", min, sec, target_min)
     };
 
     let status = MenuItemBuilder::with_id(
@@ -52,7 +79,7 @@ pub fn build_menu(
     .enabled(false)
     .build(app)?;
 
-    let work_item = MenuItemBuilder::with_id("work_time", &work_display)
+    let timer_item = MenuItemBuilder::with_id("timer_status", &timer_display)
         .enabled(false)
         .build(app)?;
 
@@ -67,7 +94,8 @@ pub fn build_menu(
         .enabled(false)
         .build(app)?;
 
-    let settings = MenuItemBuilder::with_id("settings", "\u{2699}\u{fe0f} Settings...").build(app)?;
+    let settings =
+        MenuItemBuilder::with_id("settings", "\u{2699}\u{fe0f} Settings...").build(app)?;
     let weekly =
         MenuItemBuilder::with_id("weekly_stats", "\u{1f4ca} Weekly Stats...").build(app)?;
     let quit = MenuItemBuilder::with_id("quit", "Quit DelayNoMore").build(app)?;
@@ -75,7 +103,7 @@ pub fn build_menu(
     let menu = MenuBuilder::new(app)
         .item(&status)
         .separator()
-        .item(&work_item)
+        .item(&timer_item)
         .item(&rest_item)
         .item(&eye_item)
         .separator()
