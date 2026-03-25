@@ -16,7 +16,6 @@ pub struct TimerState {
     pub rest_start_time: Option<Instant>,
     pub ignore_count: u32,
     pub last_eye_rest: Instant,
-    pub session_start: Instant,
     pub llm_prefetched_msg: Option<String>,
     pub big_rest_triggered: bool,
     pub effective_interval_sec: u64,
@@ -30,7 +29,6 @@ impl TimerState {
             rest_start_time: None,
             ignore_count: 0,
             last_eye_rest: Instant::now(),
-            session_start: Instant::now(),
             llm_prefetched_msg: None,
             big_rest_triggered: false,
             effective_interval_sec: (interval_min as u64) * 60,
@@ -68,7 +66,6 @@ pub fn start_timer(
                     ts.continuous_work_sec = 0;
                     ts.big_rest_triggered = false;
                     ts.ignore_count = 0;
-                    ts.session_start = Instant::now();
                     ts.last_eye_rest = Instant::now();
                     drop(ts);
 
@@ -97,7 +94,6 @@ pub fn start_timer(
             let work_min = ts.continuous_work_sec / 60;
             let work_sec = ts.continuous_work_sec;
             let interval_sec = ts.effective_interval_sec;
-            let flow_sec = (cfg.flow_protection_min as u64) * 60;
 
             // Emit status every tick so frontend can display progress
             let _ = app.emit(
@@ -106,15 +102,8 @@ pub fn start_timer(
                     "workSec": work_sec,
                     "intervalSec": interval_sec,
                     "isResting": false,
-                    "flowProtection": ts.session_start.elapsed().as_secs() < flow_sec,
                 }),
             );
-
-            // Flow protection
-            if ts.session_start.elapsed().as_secs() < flow_sec {
-                drop(ts);
-                continue;
-            }
 
             // Update mood
             {
@@ -269,13 +258,6 @@ mod tests {
     }
 
     #[test]
-    fn test_flow_protection_window() {
-        let ts = TimerState::new(45);
-        // Session just started — within flow protection
-        assert!(ts.session_start.elapsed().as_secs() < 15 * 60);
-    }
-
-    #[test]
     fn test_eye_rest_initial() {
         let ts = TimerState::new(45);
         assert!(ts.last_eye_rest.elapsed().as_secs() < 1);
@@ -308,7 +290,6 @@ mod tests {
         ts.is_resting = false;
         ts.continuous_work_sec = 0;
         ts.big_rest_triggered = false;
-        ts.session_start = Instant::now();
 
         assert_eq!(ts.continuous_work_sec, 0);
         assert!(!ts.is_resting);

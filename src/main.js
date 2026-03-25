@@ -67,7 +67,7 @@ function createStatusBar() {
   document.getElementById('btn-debug').addEventListener('click', toggleDebugMenu);
 }
 
-function updateStatusBar({ workSec, intervalSec, isResting, flowProtection }) {
+function updateStatusBar({ workSec, intervalSec, isResting }) {
   const fill = document.querySelector('.status-fill');
   const text = document.querySelector('.status-text');
   if (!fill || !text) return;
@@ -78,11 +78,6 @@ function updateStatusBar({ workSec, intervalSec, isResting, flowProtection }) {
   if (isResting) {
     text.textContent = 'Resting...';
     fill.style.background = 'var(--color-happy)';
-  } else if (flowProtection) {
-    const min = Math.floor(workSec / 60);
-    const sec = workSec % 60;
-    text.textContent = `${min}:${String(sec).padStart(2, '0')} (flow protection)`;
-    fill.style.background = 'var(--color-text-muted)';
   } else {
     const min = Math.floor(workSec / 60);
     const sec = workSec % 60;

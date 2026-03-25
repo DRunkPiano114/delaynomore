@@ -9,7 +9,6 @@ pub struct AppConfig {
     pub eye_rest_interval_min: u32,
     pub rest_duration_min: u32,
     pub snooze_duration_min: u32,
-    pub flow_protection_min: u32,
     pub llm_api_key: Option<String>,
     pub llm_provider: String,
     pub pet_position: (f64, f64),
@@ -24,7 +23,6 @@ impl Default for AppConfig {
             eye_rest_interval_min: 20,
             rest_duration_min: 5,
             snooze_duration_min: 15,
-            flow_protection_min: 15,
             llm_api_key: None,
             llm_provider: "claude".to_string(),
             pet_position: (0.0, 0.0),
@@ -75,7 +73,6 @@ mod tests {
         assert_eq!(cfg.eye_rest_interval_min, 20);
         assert_eq!(cfg.rest_duration_min, 5);
         assert_eq!(cfg.snooze_duration_min, 15);
-        assert_eq!(cfg.flow_protection_min, 15);
         assert!(!cfg.onboarding_done);
     }
 
