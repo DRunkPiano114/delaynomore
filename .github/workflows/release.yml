@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app
+        run: |
+          APP_VERSION="${GITHUB_REF_NAME#v}"
+          export APP_VERSION
+          bash scripts/build-app.sh
+
+      - name: Package zip
+        run: |
+          cd .build/app
+          zip -r "$GITHUB_WORKSPACE/DelayNoMore.zip" DelayNoMore.app
+
+      - name: Create release
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            DelayNoMore.zip \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
