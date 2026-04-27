@@ -121,17 +121,24 @@ enum ReminderMediaLibrary {
         }
     }
 
+    private static var previewCache: [String: NSImage] = [:]
+
     static func previewImage(for media: ReminderMedia?) -> NSImage? {
-        guard let media, let asset = asset(for: media) else {
-            return nil
+        guard let media else { return nil }
+
+        let key = "\(media.kind.rawValue):\(media.identifier)"
+        if let cached = previewCache[key] { return cached }
+
+        guard let asset = asset(for: media) else { return nil }
+
+        let image: NSImage?
+        switch asset {
+        case .image(let img): image = img
+        case .video(let url): image = videoThumbnail(url: url)
         }
 
-        switch asset {
-        case .image(let image):
-            return image
-        case .video(let url):
-            return videoThumbnail(url: url)
-        }
+        if let image { previewCache[key] = image }
+        return image
     }
 
     static func videoURL(for media: ReminderMedia?) -> URL? {

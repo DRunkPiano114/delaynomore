@@ -7,6 +7,7 @@ final class ReminderWindowController {
     private var window: NSWindow?
     private var player: AVQueuePlayer?
     private var playerLooper: AVPlayerLooper?
+    private var countdownLabel: NSTextField?
 
     func show(media: ReminderMedia) -> Bool {
         guard let asset = ReminderMediaLibrary.asset(for: media), let screen = targetScreen() else {
@@ -51,7 +52,20 @@ final class ReminderWindowController {
         window.alphaValue = 0
         window.contentView = renderedContent.view
 
+        let countdown = NSTextField(labelWithString: "")
+        countdown.font = .monospacedDigitSystemFont(ofSize: 48, weight: .medium)
+        countdown.textColor = NSColor.white.withAlphaComponent(0.7)
+        countdown.alignment = .center
+        countdown.frame = NSRect(
+            x: 0,
+            y: mediaFrame.minY - 72,
+            width: overlayFrame.width,
+            height: 56
+        )
+        renderedContent.view.addSubview(countdown)
+
         self.window = window
+        self.countdownLabel = countdown
         player = renderedContent.player
         playerLooper = renderedContent.playerLooper
 
@@ -67,6 +81,10 @@ final class ReminderWindowController {
         return true
     }
 
+    func updateCountdown(_ remainingSeconds: Int) {
+        countdownLabel?.stringValue = formatClock(remainingSeconds)
+    }
+
     func dismiss(animated: Bool) {
         guard let window else {
             return
@@ -76,6 +94,7 @@ final class ReminderWindowController {
             self?.player?.pause()
             self?.player = nil
             self?.playerLooper = nil
+            self?.countdownLabel = nil
             window.orderOut(nil)
             window.close()
             if self?.window === window {

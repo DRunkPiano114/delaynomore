@@ -34,8 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func buildMenu() {
         if let button = statusItem.button {
-            button.imagePosition = .imageLeft
-            button.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+            button.imagePosition = .imageOnly
         }
 
         [startItem, stopItem, settingsItem].forEach {
@@ -80,6 +79,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         updateMenu()
+
+        if case .rest(let remaining) = model.phase {
+            reminderController?.updateCountdown(remaining)
+        }
     }
 
     @objc private func start() {
@@ -222,21 +225,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateMenu() {
-        let status = statusItemPresentation
         stateItem.title = stateTitle
-        stateItem.image = Self.menuSymbol(status.symbolName)
         configurePrimaryAction()
         stopItem.isHidden = shouldHideStopItem
 
-        if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: status.symbolName, accessibilityDescription: status.accessibilityDescription)
-            image?.isTemplate = true
+        guard let button = statusItem.button else { return }
 
+        switch model.phase {
+        case .idle:
+            let image = NSImage(systemSymbolName: "timer", accessibilityDescription: "DelayNoMore")
+            image?.isTemplate = true
             button.image = image
-            button.title = status.title.isEmpty ? "" : " \(status.title)"
-            button.toolTip = status.accessibilityDescription
-            button.setAccessibilityLabel(status.accessibilityDescription)
+            button.toolTip = "DelayNoMore"
+            stateItem.image = Self.menuSymbol("timer")
+
+        case .work(let remaining):
+            let progress = CGFloat(remaining) / CGFloat(model.workSeconds)
+            button.image = Self.makeRingImage(progress: progress)
+            button.toolTip = "Work — \(formatClock(remaining)) remaining"
+            stateItem.image = Self.menuSymbol("timer")
+
+        case .rest(let remaining):
+            let progress = CGFloat(remaining) / CGFloat(model.breakSeconds)
+            button.image = Self.makeRingImage(progress: progress)
+            button.toolTip = "Break — \(formatClock(remaining)) remaining"
+            stateItem.image = Self.menuSymbol("pause.circle")
+
+        case .paused(let previous):
+            let total: Int
+            switch previous {
+            case .work: total = model.workSeconds
+            case .rest: total = model.breakSeconds
+            }
+            let progress = CGFloat(previous.remainingSeconds) / CGFloat(total)
+            button.image = Self.makeRingImage(progress: progress)
+            button.toolTip = "Paused — \(formatClock(previous.remainingSeconds)) remaining"
+            stateItem.image = Self.menuSymbol("pause.circle")
         }
+
+        button.setAccessibilityLabel(button.toolTip)
     }
 
     private var shouldHideStopItem: Bool {
@@ -289,20 +316,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private var statusItemPresentation: (symbolName: String, title: String, accessibilityDescription: String) {
-        switch model.phase {
-        case .idle:
-            return ("timer", "", "DelayNoMore idle")
-        case .work(let remainingSeconds):
-            let clock = formatClock(remainingSeconds)
-            return ("timer", clock, "DelayNoMore work ends in \(clock)")
-        case .rest(let remainingSeconds):
-            let clock = formatClock(remainingSeconds)
-            return ("pause.circle", clock, "DelayNoMore break ends in \(clock)")
-        case .paused(let previous):
-            let clock = formatClock(previous.remainingSeconds)
-            return ("pause.circle", clock, "DelayNoMore paused with \(clock) remaining")
+    private static func makeRingImage(progress: CGFloat) -> NSImage {
+        let size: CGFloat = 18
+        let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+            let lineWidth: CGFloat = 1.8
+            let center = CGPoint(x: rect.midX, y: rect.midY)
+            let radius = (size - lineWidth) / 2
+
+            let trackPath = NSBezierPath()
+            trackPath.appendArc(withCenter: center, radius: radius, startAngle: 0, endAngle: 360)
+            NSColor(white: 0, alpha: 0.15).setStroke()
+            trackPath.lineWidth = lineWidth
+            trackPath.stroke()
+
+            guard progress > 0.005 else { return true }
+            let startAngle: CGFloat = 90
+            let endAngle = startAngle - progress * 360
+            let arcPath = NSBezierPath()
+            arcPath.appendArc(withCenter: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+            NSColor(white: 0, alpha: 1.0).setStroke()
+            arcPath.lineWidth = lineWidth
+            arcPath.lineCapStyle = .round
+            arcPath.stroke()
+
+            return true
         }
+        image.isTemplate = true
+        return image
     }
 
     private func showAlert(title: String, message: String) {
