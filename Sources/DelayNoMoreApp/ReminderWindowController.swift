@@ -1,12 +1,7 @@
 import AppKit
 
 final class ReminderWindowController {
-    private let onEndBreak: () -> Void
     private var window: NSWindow?
-
-    init(onEndBreak: @escaping () -> Void) {
-        self.onEndBreak = onEndBreak
-    }
 
     func showImage(at path: String) -> Bool {
         guard let image = NSImage(contentsOfFile: path), let screen = targetScreen() else {
@@ -30,8 +25,7 @@ final class ReminderWindowController {
         let contentView = Self.makeContentView(
             size: overlayFrame.size,
             image: image,
-            imageFrame: imageFrame,
-            endBreakTarget: self
+            imageFrame: imageFrame
         )
 
         let window = NSPanel(
@@ -90,10 +84,6 @@ final class ReminderWindowController {
         }
     }
 
-    @objc private func endBreak() {
-        onEndBreak()
-    }
-
     private func targetScreen() -> NSScreen? {
         let mouseLocation = NSEvent.mouseLocation
 
@@ -114,8 +104,7 @@ final class ReminderWindowController {
     private static func makeContentView(
         size: NSSize,
         image: NSImage,
-        imageFrame: NSRect,
-        endBreakTarget: AnyObject
+        imageFrame: NSRect
     ) -> NSView {
         let contentView = NSView(frame: NSRect(origin: .zero, size: size))
         contentView.wantsLayer = true
@@ -143,32 +132,6 @@ final class ReminderWindowController {
         shadowView.addSubview(imageClipView)
         contentView.addSubview(shadowView)
 
-        let endBreakButton = NSButton(
-            title: "End Break",
-            target: endBreakTarget,
-            action: #selector(ReminderWindowController.endBreak)
-        )
-        endBreakButton.bezelStyle = .rounded
-        endBreakButton.image = Self.symbol("checkmark")
-        endBreakButton.imagePosition = .imageLeading
-        endBreakButton.sizeToFit()
-
-        let buttonWidth = max(endBreakButton.frame.width + 18, 112)
-        let buttonHeight: CGFloat = 32
-        endBreakButton.frame = NSRect(
-            x: imageFrame.maxX - buttonWidth - 14,
-            y: imageFrame.maxY - buttonHeight - 14,
-            width: buttonWidth,
-            height: buttonHeight
-        )
-        contentView.addSubview(endBreakButton)
-
         return contentView
-    }
-
-    private static func symbol(_ name: String) -> NSImage? {
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
-        image?.isTemplate = true
-        return image
     }
 }

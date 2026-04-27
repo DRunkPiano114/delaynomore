@@ -21,9 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         config = store.load()
         model = TimerModel(config: config)
-        reminderController = ReminderWindowController { [weak self] in
-            self?.endBreakEarly()
-        }
+        reminderController = ReminderWindowController()
 
         buildMenu()
         startClock()
