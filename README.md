@@ -1,5 +1,7 @@
 # DelayNoMore
 
+[中文说明](README.zh.md)
+
 A minimal native macOS break reminder. Runs from the menu bar, counts down a work period, then shows a full-screen media reminder for the entire break.
 
 ## Install
@@ -13,6 +15,8 @@ If you see **"DelayNoMore is damaged and can't be opened"**, run this in Termina
 ```bash
 xattr -cr /Applications/DelayNoMore.app
 ```
+
+This removes the macOS quarantine attribute that gets added to files downloaded from the internet. It does not modify the app itself.
 
 Then open the app normally. You only need to do this once.
 
