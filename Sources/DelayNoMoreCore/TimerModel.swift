@@ -119,7 +119,7 @@ public struct TimerModel: Equatable {
             phase = .rest(remainingSeconds: remainingSeconds - 1)
             return .none
         case .rest:
-            phase = .work(remainingSeconds: workSeconds)
+            phase = .idle
             return .finishedRest
         case .idle, .paused:
             return .none
@@ -131,7 +131,7 @@ public struct TimerModel: Equatable {
             return .none
         }
 
-        phase = .work(remainingSeconds: workSeconds)
+        phase = .idle
         return .finishedRest
     }
 

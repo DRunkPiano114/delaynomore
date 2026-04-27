@@ -10,20 +10,20 @@ final class TimerModelTests: XCTestCase {
         XCTAssertEqual(model.phase, .rest(remainingSeconds: 60))
     }
 
-    func testRestTransitionsToNextWorkCycle() throws {
+    func testRestTransitionsToIdle() throws {
         let config = AppConfig(workMinutes: 1, breakMinutes: 1)
         var model = TimerModel(config: config, phase: .rest(remainingSeconds: 1))
 
         XCTAssertEqual(model.tick(), .finishedRest)
-        XCTAssertEqual(model.phase, .work(remainingSeconds: 60))
+        XCTAssertEqual(model.phase, .idle)
     }
 
-    func testSkippingRestStartsNextWorkCycle() {
+    func testSkippingRestReturnsToIdle() {
         let config = AppConfig(workMinutes: 25, breakMinutes: 5)
         var model = TimerModel(config: config, phase: .rest(remainingSeconds: 300))
 
         XCTAssertEqual(model.skipRest(), .finishedRest)
-        XCTAssertEqual(model.phase, .work(remainingSeconds: 1_500))
+        XCTAssertEqual(model.phase, .idle)
     }
 
     func testChangingCurrentWorkDurationResetsWorkRemainingTime() throws {

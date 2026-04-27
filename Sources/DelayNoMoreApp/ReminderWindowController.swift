@@ -1,12 +1,7 @@
 import AppKit
 
 final class ReminderWindowController {
-    private var window: ReminderWindow?
-    private let onUserClose: () -> Void
-
-    init(onUserClose: @escaping () -> Void) {
-        self.onUserClose = onUserClose
-    }
+    private var window: NSWindow?
 
     func showImage(at path: String) -> Bool {
         guard let image = NSImage(contentsOfFile: path), let screen = targetScreen() else {
@@ -16,18 +11,14 @@ final class ReminderWindowController {
         dismiss(animated: false)
 
         let targetFrame = Self.targetFrame(for: screen)
-        let startFrame = targetFrame.offsetBy(dx: 0, dy: -(targetFrame.height + 32))
-        let imageView = ReminderImageView(frame: NSRect(origin: .zero, size: targetFrame.size))
+        let imageView = NSImageView(frame: NSRect(origin: .zero, size: targetFrame.size))
         imageView.image = image
         imageView.imageAlignment = .alignCenter
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.autoresizingMask = [.width, .height]
-        imageView.onClick = { [weak self] in
-            self?.onUserClose()
-        }
 
-        let window = ReminderWindow(
-            contentRect: startFrame,
+        let window = NSWindow(
+            contentRect: targetFrame,
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -41,9 +32,6 @@ final class ReminderWindowController {
         window.isReleasedWhenClosed = false
         window.alphaValue = 0
         window.contentView = imageView
-        window.onEscape = { [weak self] in
-            self?.onUserClose()
-        }
 
         self.window = window
 
@@ -54,7 +42,6 @@ final class ReminderWindowController {
             context.duration = 0.35
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             window.animator().alphaValue = 1
-            window.animator().setFrame(targetFrame, display: true)
         }
 
         return true
@@ -105,38 +92,5 @@ final class ReminderWindowController {
             width: width,
             height: height
         )
-    }
-}
-
-private final class ReminderWindow: NSWindow {
-    var onEscape: (() -> Void)?
-
-    override var canBecomeKey: Bool {
-        true
-    }
-
-    override var canBecomeMain: Bool {
-        true
-    }
-
-    override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 {
-            onEscape?()
-            return
-        }
-
-        super.keyDown(with: event)
-    }
-}
-
-private final class ReminderImageView: NSImageView {
-    var onClick: (() -> Void)?
-
-    override var acceptsFirstResponder: Bool {
-        true
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        onClick?()
     }
 }

@@ -22,4 +22,6 @@ open .build/app/DelayNoMore.app
 - Work duration defaults to 25 minutes.
 - Break duration defaults to 5 minutes.
 - The reminder image window is borderless, focused, always on top, and uses 55% of the active screen's visible width and height.
-- Click the image, press Escape, or choose `Skip Break` to end the current break early.
+- The reminder image fades in at the center of the active screen.
+- Choose `Skip Break` from the menu bar to end the current break early.
+- After each break ends, the app returns to idle instead of starting another work cycle automatically.
