@@ -5,8 +5,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     private let onChange: (AppConfig) -> Void
     private var config: AppConfig
 
-    private let mediaNameField = NSTextField(labelWithString: "")
-    private let mediaPreviewView = NSImageView()
+    private var reminderTiles: [ReminderTile] = []
     private let workField = NSTextField()
     private let breakField = NSTextField()
     private let workStepper = NSStepper()
@@ -17,7 +16,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         self.onChange = onChange
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 430, height: 318),
+            contentRect: NSRect(x: 0, y: 0, width: 430, height: 560),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -43,9 +42,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     func update(config: AppConfig) {
         self.config = config
 
-        mediaNameField.stringValue = ReminderMediaLibrary.title(for: config.reminder)
-        mediaNameField.textColor = ReminderMediaLibrary.isAvailable(config.reminder) ? .secondaryLabelColor : .tertiaryLabelColor
-        updateMediaPreview(media: config.reminder)
+        refreshReminderTiles()
 
         workField.integerValue = config.workMinutes
         workStepper.integerValue = config.workMinutes
@@ -91,39 +88,112 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     }
 
     private func makeMediaSection() -> NSView {
-        mediaPreviewView.imageAlignment = .alignCenter
-        mediaPreviewView.imageScaling = .scaleProportionallyUpOrDown
-        mediaPreviewView.wantsLayer = true
-        mediaPreviewView.layer?.cornerRadius = 10
-        mediaPreviewView.layer?.masksToBounds = true
-        mediaPreviewView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-        mediaPreviewView.widthAnchor.constraint(equalToConstant: 44).isActive = true
-        mediaPreviewView.heightAnchor.constraint(equalToConstant: 44).isActive = true
-
         let label = NSTextField(labelWithString: "Reminder Media")
         label.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
 
-        mediaNameField.lineBreakMode = .byTruncatingMiddle
-        mediaNameField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        mediaNameField.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        reminderTiles = makeReminderTiles()
+        let grid = makeReminderGrid(tiles: reminderTiles)
 
-        let textStack = NSStackView(views: [label, mediaNameField])
-        textStack.orientation = .vertical
-        textStack.alignment = .leading
-        textStack.spacing = 3
-        textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let stack = NSStackView(views: [label, grid])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 10
 
-        let chooseButton = NSButton(title: "Choose...", target: self, action: #selector(chooseMedia))
-        chooseButton.bezelStyle = .rounded
-        chooseButton.image = Self.symbol("photo.on.rectangle")
-        chooseButton.imagePosition = .imageLeading
+        let gridHeight = Self.reminderGridHeight(forTileCount: reminderTiles.count)
+        return makeBox(containing: stack, height: Self.reminderMediaLabelHeight + Self.reminderMediaSpacing + gridHeight)
+    }
 
-        let row = NSStackView(views: [mediaPreviewView, textStack, chooseButton])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 14
+    private func makeReminderTiles() -> [ReminderTile] {
+        var tiles: [ReminderTile] = []
 
-        return makeBox(containing: row, height: 74)
+        for builtIn in ReminderMediaLibrary.builtIns {
+            let media = ReminderMedia.builtIn(id: builtIn.id)
+            guard ReminderMediaLibrary.isAvailable(media) else {
+                continue
+            }
+
+            let tile = ReminderTile(kind: .builtIn(builtIn.id), title: builtIn.title)
+            tile.image = ReminderMediaLibrary.previewImage(for: media)
+            tile.onClick = { [weak self] in self?.selectBuiltIn(id: builtIn.id) }
+            tiles.append(tile)
+        }
+
+        let customTile = ReminderTile(kind: .custom, title: "Custom...")
+        customTile.onClick = { [weak self] in self?.chooseMedia() }
+        tiles.append(customTile)
+
+        return tiles
+    }
+
+    private func makeReminderGrid(tiles: [ReminderTile]) -> NSView {
+        let rows = Self.reminderGridRowCount(forTileCount: tiles.count)
+
+        var rowStacks: [NSStackView] = []
+        for rowIndex in 0..<rows {
+            let start = rowIndex * Self.reminderGridColumns
+            let end = min(start + Self.reminderGridColumns, tiles.count)
+            let rowTiles = Array(tiles[start..<end])
+
+            var rowViews: [NSView] = rowTiles
+            while rowViews.count < Self.reminderGridColumns {
+                rowViews.append(NSView())
+            }
+
+            let rowStack = NSStackView(views: rowViews)
+            rowStack.orientation = .horizontal
+            rowStack.distribution = .fillEqually
+            rowStack.spacing = Self.reminderGridSpacing
+            rowStack.widthAnchor.constraint(equalToConstant: Self.reminderGridWidth).isActive = true
+            rowStack.heightAnchor.constraint(equalToConstant: Self.reminderTileHeight).isActive = true
+            rowStacks.append(rowStack)
+        }
+
+        let grid = NSStackView(views: rowStacks)
+        grid.orientation = .vertical
+        grid.alignment = .leading
+        grid.spacing = Self.reminderGridSpacing
+        grid.widthAnchor.constraint(equalToConstant: Self.reminderGridWidth).isActive = true
+        grid.heightAnchor.constraint(equalToConstant: Self.reminderGridHeight(forTileCount: tiles.count)).isActive = true
+        return grid
+    }
+
+    private func refreshReminderTiles() {
+        for tile in reminderTiles {
+            tile.isSelected = isCurrentSelection(tile.tileKind)
+            if case .custom = tile.tileKind {
+                updateCustomTile(tile)
+            }
+        }
+    }
+
+    private func updateCustomTile(_ tile: ReminderTile) {
+        let isCustom = config.reminder?.kind == .customImage || config.reminder?.kind == .customVideo
+
+        if isCustom, let media = config.reminder, let preview = ReminderMediaLibrary.previewImage(for: media) {
+            tile.image = preview
+            tile.title = ReminderMediaLibrary.title(for: media)
+        } else {
+            tile.image = nil
+            tile.title = "Custom..."
+        }
+    }
+
+    private func isCurrentSelection(_ identifier: ReminderTile.Kind) -> Bool {
+        switch identifier {
+        case .builtIn(let id):
+            guard let reminder = config.reminder, reminder.kind == .builtIn else {
+                return false
+            }
+            return reminder.identifier == id
+        case .custom:
+            return config.reminder?.kind == .customImage || config.reminder?.kind == .customVideo
+        }
+    }
+
+    private func selectBuiltIn(id: String) {
+        var nextConfig = config
+        nextConfig.reminder = .builtIn(id: id)
+        apply(nextConfig)
     }
 
     private func makeDurationsSection() -> NSView {
@@ -235,7 +305,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         return box
     }
 
-    @objc private func chooseMedia() {
+    private func chooseMedia() {
         let panel = NSOpenPanel()
         panel.title = "Choose Reminder Media"
         panel.canChooseFiles = true
@@ -322,19 +392,33 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         onChange(nextConfig)
     }
 
-    private func updateMediaPreview(media: ReminderMedia?) {
-        if let image = ReminderMediaLibrary.previewImage(for: media) {
-            mediaPreviewView.image = image
-            mediaPreviewView.contentTintColor = nil
-            return
-        }
-
-        mediaPreviewView.image = Self.symbol(media?.kind == .customVideo ? "play.rectangle" : "photo")
-        mediaPreviewView.contentTintColor = .tertiaryLabelColor
-    }
-
     private func clamped(_ value: Int, to range: ClosedRange<Int>) -> Int {
         min(max(value, range.lowerBound), range.upperBound)
+    }
+
+    private static let reminderGridColumns = 3
+    private static let reminderGridWidth: CGFloat = 342
+    private static let reminderGridSpacing: CGFloat = 8
+    private static let reminderMediaLabelHeight: CGFloat = 18
+    private static let reminderMediaSpacing: CGFloat = 10
+
+    private static var reminderTileWidth: CGFloat {
+        let totalSpacing = reminderGridSpacing * CGFloat(reminderGridColumns - 1)
+        return (reminderGridWidth - totalSpacing) / CGFloat(reminderGridColumns)
+    }
+
+    private static var reminderTileHeight: CGFloat {
+        ReminderTile.preferredHeight(forWidth: reminderTileWidth)
+    }
+
+    private static func reminderGridRowCount(forTileCount tileCount: Int) -> Int {
+        max(1, (tileCount + reminderGridColumns - 1) / reminderGridColumns)
+    }
+
+    private static func reminderGridHeight(forTileCount tileCount: Int) -> CGFloat {
+        let rows = reminderGridRowCount(forTileCount: tileCount)
+        let totalSpacing = reminderGridSpacing * CGFloat(max(0, rows - 1))
+        return reminderTileHeight * CGFloat(rows) + totalSpacing
     }
 
     private func showAlert(title: String, message: String) {
@@ -359,5 +443,139 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
         image?.isTemplate = true
         return image
+    }
+}
+
+final class ReminderTile: NSView {
+    enum Kind: Equatable {
+        case builtIn(String)
+        case custom
+    }
+
+    let tileKind: Kind
+    var onClick: (() -> Void)?
+
+    var image: NSImage? {
+        didSet { imageView.image = image; updatePlaceholder() }
+    }
+
+    var title: String {
+        didSet { titleLabel.stringValue = title }
+    }
+
+    var isSelected: Bool = false {
+        didSet { updateSelectionAppearance() }
+    }
+
+    private let imageView = NSImageView()
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let placeholderView = NSImageView()
+    private let imageContainer = NSView()
+
+    private static let titleSpacing: CGFloat = 4
+    private static let titleHeight: CGFloat = 16
+
+    static func preferredHeight(forWidth width: CGFloat) -> CGFloat {
+        width * 9.0 / 16.0 + titleSpacing + titleHeight
+    }
+
+    init(kind: Kind, title: String) {
+        self.tileKind = kind
+        self.title = title
+        super.init(frame: .zero)
+
+        translatesAutoresizingMaskIntoConstraints = false
+
+        imageContainer.wantsLayer = true
+        imageContainer.layer?.cornerRadius = 8
+        imageContainer.layer?.masksToBounds = true
+        imageContainer.layer?.borderWidth = 2
+        imageContainer.layer?.borderColor = NSColor.clear.cgColor
+        imageContainer.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        imageContainer.translatesAutoresizingMaskIntoConstraints = false
+
+        imageView.imageAlignment = .alignCenter
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+
+        placeholderView.image = NSImage(systemSymbolName: "photo.badge.plus", accessibilityDescription: nil)
+        placeholderView.contentTintColor = .tertiaryLabelColor
+        placeholderView.imageScaling = .scaleProportionallyDown
+        placeholderView.translatesAutoresizingMaskIntoConstraints = false
+
+        imageContainer.addSubview(imageView)
+        imageContainer.addSubview(placeholderView)
+
+        titleLabel.stringValue = title
+        titleLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        titleLabel.alignment = .center
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(imageContainer)
+        addSubview(titleLabel)
+
+        NSLayoutConstraint.activate([
+            imageContainer.topAnchor.constraint(equalTo: topAnchor),
+            imageContainer.leadingAnchor.constraint(equalTo: leadingAnchor),
+            imageContainer.trailingAnchor.constraint(equalTo: trailingAnchor),
+            imageContainer.heightAnchor.constraint(equalTo: imageContainer.widthAnchor, multiplier: 9.0 / 16.0),
+
+            imageView.topAnchor.constraint(equalTo: imageContainer.topAnchor),
+            imageView.leadingAnchor.constraint(equalTo: imageContainer.leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: imageContainer.trailingAnchor),
+            imageView.bottomAnchor.constraint(equalTo: imageContainer.bottomAnchor),
+
+            placeholderView.centerXAnchor.constraint(equalTo: imageContainer.centerXAnchor),
+            placeholderView.centerYAnchor.constraint(equalTo: imageContainer.centerYAnchor),
+            placeholderView.widthAnchor.constraint(equalToConstant: 22),
+            placeholderView.heightAnchor.constraint(equalToConstant: 22),
+
+            titleLabel.topAnchor.constraint(equalTo: imageContainer.bottomAnchor, constant: Self.titleSpacing),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
+            titleLabel.heightAnchor.constraint(equalToConstant: Self.titleHeight),
+            titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+
+        updatePlaceholder()
+        updateSelectionAppearance()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        onClick?()
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard !isHidden, alphaValue > 0, bounds.contains(point) else {
+            return nil
+        }
+
+        return self
+    }
+
+    override func updateLayer() {
+        super.updateLayer()
+        updateSelectionAppearance()
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    private func updatePlaceholder() {
+        placeholderView.isHidden = image != nil
+        imageView.isHidden = image == nil
+    }
+
+    private func updateSelectionAppearance() {
+        let borderColor = isSelected ? NSColor.controlAccentColor.cgColor : NSColor.separatorColor.withAlphaComponent(0.5).cgColor
+        imageContainer.layer?.borderColor = borderColor
+        imageContainer.layer?.borderWidth = isSelected ? 2.5 : 1
     }
 }

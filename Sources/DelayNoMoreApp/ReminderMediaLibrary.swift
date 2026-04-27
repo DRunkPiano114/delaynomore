@@ -25,7 +25,64 @@ struct BuiltInReminderMedia {
 enum ReminderMediaLibrary {
     static let allowedContentTypes: [UTType] = [.image, .movie, .video]
 
-    static let builtIns: [BuiltInReminderMedia] = []
+    static let builtIns: [BuiltInReminderMedia] = [
+        BuiltInReminderMedia(
+            id: "lucky-cat",
+            title: "Lucky Cat",
+            resourceName: "lucky-cat",
+            resourceExtension: "mp4",
+            subdirectory: "BuiltInReminders",
+            kind: .video
+        ),
+        BuiltInReminderMedia(
+            id: "cartoon-fox-skunk",
+            title: "Fox & Skunk",
+            resourceName: "cartoon-fox-skunk",
+            resourceExtension: "mp4",
+            subdirectory: "BuiltInReminders",
+            kind: .video
+        ),
+        BuiltInReminderMedia(
+            id: "cozy-cat-house",
+            title: "Cat Den",
+            resourceName: "cozy-cat-house",
+            resourceExtension: "mp4",
+            subdirectory: "BuiltInReminders",
+            kind: .video
+        ),
+        BuiltInReminderMedia(
+            id: "black-cat-eyes",
+            title: "Black Cat",
+            resourceName: "black-cat-eyes",
+            resourceExtension: "mp4",
+            subdirectory: "BuiltInReminders",
+            kind: .video
+        ),
+        BuiltInReminderMedia(
+            id: "fireplace",
+            title: "Fireplace",
+            resourceName: "fireplace",
+            resourceExtension: "mp4",
+            subdirectory: "BuiltInReminders",
+            kind: .video
+        ),
+        BuiltInReminderMedia(
+            id: "rain-puddle",
+            title: "Rain on Puddle",
+            resourceName: "rain-puddle",
+            resourceExtension: "mp4",
+            subdirectory: "BuiltInReminders",
+            kind: .video
+        ),
+        BuiltInReminderMedia(
+            id: "evening-lights",
+            title: "Evening Lights",
+            resourceName: "evening-lights",
+            resourceExtension: "mp4",
+            subdirectory: "BuiltInReminders",
+            kind: .video
+        )
+    ]
 
     static func asset(for media: ReminderMedia) -> ReminderMediaAsset? {
         switch media.kind {
@@ -144,6 +201,6 @@ enum ReminderMediaLibrary {
             return nil
         }
 
-        return NSImage(cgImage: cgImage, size: .zero)
+        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
     }
 }
