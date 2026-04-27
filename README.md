@@ -13,7 +13,7 @@ Since the app is not signed with an Apple Developer ID, macOS will block it on f
 If you see **"DelayNoMore is damaged and can't be opened"**, run this in Terminal:
 
 ```bash
-xattr -cr /Applications/DelayNoMore.app
+xattr -d com.apple.quarantine /Applications/DelayNoMore.app
 ```
 
 This removes the macOS quarantine attribute that gets added to files downloaded from the internet. It does not modify the app itself.

@@ -11,7 +11,7 @@
 如果看到 **"DelayNoMore 已损坏，无法打开"**，在终端中运行：
 
 ```bash
-xattr -cr /Applications/DelayNoMore.app
+xattr -d com.apple.quarantine /Applications/DelayNoMore.app
 ```
 
 这条命令会移除 macOS 给从网上下载的文件添加的隔离标记，不会修改应用本身。
