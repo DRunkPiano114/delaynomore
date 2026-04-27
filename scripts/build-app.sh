@@ -18,6 +18,10 @@ for bundle in "$ROOT_DIR/.build/release/"*.bundle; do
   cp -R "$bundle" "$MACOS_DIR/"
 done
 
+RESOURCES_DIR="$CONTENTS_DIR/Resources"
+mkdir -p "$RESOURCES_DIR"
+cp "$ROOT_DIR/Sources/DelayNoMoreApp/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+
 cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -43,6 +47,8 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <string>13.0</string>
   <key>LSUIElement</key>
   <true/>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>NSHighResolutionCapable</key>
   <true/>
 </dict>
