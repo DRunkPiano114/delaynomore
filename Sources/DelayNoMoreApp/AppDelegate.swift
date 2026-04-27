@@ -7,23 +7,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let menu = NSMenu()
     private let stateItem = NSMenuItem(title: "Idle", action: nil, keyEquivalent: "")
     private let startItem = NSMenuItem(title: "Start", action: #selector(start), keyEquivalent: "")
-    private let pauseItem = NSMenuItem(title: "Pause", action: #selector(pause), keyEquivalent: "")
-    private let resetItem = NSMenuItem(title: "Reset", action: #selector(reset), keyEquivalent: "")
-    private let setImageItem = NSMenuItem(title: "Set Image...", action: #selector(setImage), keyEquivalent: "")
-    private let setWorkDurationItem = NSMenuItem(title: "Set Work Duration...", action: #selector(setWorkDuration), keyEquivalent: "")
-    private let setBreakDurationItem = NSMenuItem(title: "Set Break Duration...", action: #selector(setBreakDuration), keyEquivalent: "")
-    private let skipBreakItem = NSMenuItem(title: "Skip Break", action: #selector(skipBreak), keyEquivalent: "")
+    private let stopItem = NSMenuItem(title: "Stop", action: #selector(stop), keyEquivalent: "")
+    private let settingsItem = NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: "")
+    private let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
     private let store = ConfigStore()
     private var config = AppConfig.default
     private var model = TimerModel(config: .default)
     private var timer: Timer?
     private var reminderController: ReminderWindowController?
+    private var settingsController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         config = store.load()
         model = TimerModel(config: config)
-        reminderController = ReminderWindowController()
+        reminderController = ReminderWindowController { [weak self] in
+            self?.endBreakEarly()
+        }
 
         buildMenu()
         startClock()
@@ -41,23 +41,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
         }
 
-        [startItem, pauseItem, resetItem, setImageItem, setWorkDurationItem, setBreakDurationItem, skipBreakItem].forEach {
+        [startItem, stopItem, settingsItem].forEach {
             $0.target = self
         }
+        quitItem.target = NSApp
 
         stateItem.isEnabled = false
+        stopItem.image = Self.menuSymbol("stop.fill")
+        settingsItem.image = Self.menuSymbol("gearshape")
+        quitItem.image = Self.menuSymbol("xmark.circle")
+
         menu.addItem(stateItem)
         menu.addItem(.separator())
         menu.addItem(startItem)
-        menu.addItem(pauseItem)
-        menu.addItem(resetItem)
-        menu.addItem(skipBreakItem)
+        menu.addItem(stopItem)
         menu.addItem(.separator())
-        menu.addItem(setImageItem)
-        menu.addItem(setWorkDurationItem)
-        menu.addItem(setBreakDurationItem)
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(settingsItem)
+        menu.addItem(quitItem)
 
         statusItem.menu = menu
     }
@@ -100,69 +100,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateMenu()
     }
 
-    @objc private func reset() {
+    @objc private func stop() {
         reminderController?.dismiss(animated: false)
-        model.reset(started: validImagePath() != nil)
-        updateMenu()
-    }
-
-    @objc private func setImage() {
-        _ = chooseImage()
-        updateMenu()
-    }
-
-    @objc private func setWorkDuration() {
-        guard let minutes = promptForMinutes(
-            title: "Set Work Duration",
-            message: "Enter a work duration from 1 to 240 minutes.",
-            currentValue: config.workMinutes,
-            range: AppConfig.workMinuteRange
-        ) else {
-            return
-        }
-
-        do {
-            var nextConfig = config
-            var nextModel = model
-            try nextConfig.setWorkMinutes(minutes)
-            try nextModel.setWorkMinutes(minutes)
-            config = nextConfig
-            model = nextModel
-            saveConfig()
-        } catch {
-            showAlert(title: "Invalid Duration", message: error.localizedDescription)
-        }
-
-        updateMenu()
-    }
-
-    @objc private func setBreakDuration() {
-        guard let minutes = promptForMinutes(
-            title: "Set Break Duration",
-            message: "Enter a break duration from 1 to 60 minutes.",
-            currentValue: config.breakMinutes,
-            range: AppConfig.breakMinuteRange
-        ) else {
-            return
-        }
-
-        do {
-            var nextConfig = config
-            var nextModel = model
-            try nextConfig.setBreakMinutes(minutes)
-            try nextModel.setBreakMinutes(minutes)
-            config = nextConfig
-            model = nextModel
-            saveConfig()
-        } catch {
-            showAlert(title: "Invalid Duration", message: error.localizedDescription)
-        }
-
+        model.reset(started: false)
         updateMenu()
     }
 
     @objc private func skipBreak() {
         endBreakEarly()
+    }
+
+    @objc private func showSettings() {
+        if settingsController == nil {
+            settingsController = SettingsWindowController(config: config) { [weak self] nextConfig in
+                self?.applyConfig(nextConfig)
+            }
+        }
+
+        settingsController?.update(config: config)
+        NSApp.activate(ignoringOtherApps: true)
+        settingsController?.showWindow(nil)
+        settingsController?.window?.makeKeyAndOrderFront(nil)
     }
 
     private func endBreakEarly() {
@@ -223,6 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         config.imagePath = url.path
         saveConfig()
+        settingsController?.update(config: config)
         return true
     }
 
@@ -242,42 +201,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func promptForMinutes(title: String, message: String, currentValue: Int, range: ClosedRange<Int>) -> Int? {
-        let alert = NSAlert()
-        alert.messageText = title
-        alert.informativeText = message
-        alert.addButton(withTitle: "Save")
-        alert.addButton(withTitle: "Cancel")
+    private func applyConfig(_ nextConfig: AppConfig) {
+        do {
+            try nextConfig.validate()
 
-        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24))
-        input.stringValue = String(currentValue)
-        alert.accessoryView = input
+            var nextModel = model
+            if nextConfig.workMinutes != config.workMinutes {
+                try nextModel.setWorkMinutes(nextConfig.workMinutes)
+            }
+            if nextConfig.breakMinutes != config.breakMinutes {
+                try nextModel.setBreakMinutes(nextConfig.breakMinutes)
+            }
 
-        guard alert.runModal() == .alertFirstButtonReturn else {
-            return nil
+            config = nextConfig
+            model = nextModel
+            saveConfig()
+        } catch {
+            showAlert(title: "Could Not Save Settings", message: error.localizedDescription)
+            settingsController?.update(config: config)
         }
 
-        let trimmed = input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let minutes = Int(trimmed), range.contains(minutes) else {
-            showAlert(
-                title: "Invalid Duration",
-                message: "Enter a whole number from \(range.lowerBound) to \(range.upperBound)."
-            )
-            return nil
-        }
-
-        return minutes
+        updateMenu()
     }
 
     private func updateMenu() {
+        let status = statusItemPresentation
         stateItem.title = stateTitle
-        startItem.title = model.phase.isPaused ? "Resume" : "Start"
-        startItem.isEnabled = !model.phase.isRunning
-        pauseItem.isEnabled = model.phase.isRunning
-        skipBreakItem.isEnabled = model.phase.isRestLike
+        stateItem.image = Self.menuSymbol(status.symbolName)
+        configurePrimaryAction()
+        stopItem.isHidden = model.phase == .idle
 
         if let button = statusItem.button {
-            let status = statusItemPresentation
             let image = NSImage(systemSymbolName: status.symbolName, accessibilityDescription: status.accessibilityDescription)
             image?.isTemplate = true
 
@@ -288,20 +242,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func configurePrimaryAction() {
+        startItem.isEnabled = true
+
+        switch model.phase {
+        case .idle:
+            startItem.title = "Start"
+            startItem.action = #selector(start)
+            startItem.image = Self.menuSymbol("play.fill")
+        case .work:
+            startItem.title = "Pause"
+            startItem.action = #selector(pause)
+            startItem.image = Self.menuSymbol("pause.fill")
+        case .rest:
+            startItem.title = "End Break"
+            startItem.action = #selector(skipBreak)
+            startItem.image = Self.menuSymbol("checkmark")
+        case .paused:
+            startItem.title = "Resume"
+            startItem.action = #selector(start)
+            startItem.image = Self.menuSymbol("play.fill")
+        }
+    }
+
     private var stateTitle: String {
         switch model.phase {
         case .idle:
             return "Idle"
         case .work(let remainingSeconds):
-            return "Work \(formatClock(remainingSeconds))"
+            return "Working \(formatClock(remainingSeconds))"
         case .rest(let remainingSeconds):
             return "Break \(formatClock(remainingSeconds))"
         case .paused(let previous):
             switch previous {
             case .work(let remainingSeconds):
-                return "Paused Work \(formatClock(remainingSeconds))"
+                return "Paused \(formatClock(remainingSeconds))"
             case .rest(let remainingSeconds):
-                return "Paused Break \(formatClock(remainingSeconds))"
+                return "Paused \(formatClock(remainingSeconds))"
             }
         }
     }
@@ -331,5 +308,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
         alert.runModal()
+    }
+
+    private static func menuSymbol(_ name: String) -> NSImage? {
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+        image?.isTemplate = true
+        return image
     }
 }
