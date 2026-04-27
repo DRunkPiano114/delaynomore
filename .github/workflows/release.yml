@@ -13,6 +13,11 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run tests
+        run: swift test
 
       - name: Build app
         run: |
@@ -25,11 +30,72 @@ jobs:
           cd .build/app
           zip -r "$GITHUB_WORKSPACE/DelayNoMore.zip" DelayNoMore.app
 
+      - name: Generate release notes
+        run: |
+          PREV_TAG=$(git tag --sort=-v:refname | grep '^v' | sed -n '2p')
+          VERSION="${GITHUB_REF_NAME#v}"
+          SHA256=$(shasum -a 256 DelayNoMore.zip | awk '{print $1}')
+
+          {
+            echo "## What's Changed"
+            echo ""
+
+            if [ -n "$PREV_TAG" ]; then
+              RANGE="${PREV_TAG}..${GITHUB_REF_NAME}"
+            else
+              RANGE="${GITHUB_REF_NAME}"
+            fi
+
+            feat=$(git log "$RANGE" --pretty=format:"- %s" --grep="^feat" --extended-regexp | sed 's/^- feat: /- /; s/^- feat(/- (/')
+            fix=$(git log "$RANGE" --pretty=format:"- %s" --grep="^fix" --extended-regexp | sed 's/^- fix: /- /; s/^- fix(/- (/')
+            docs=$(git log "$RANGE" --pretty=format:"- %s" --grep="^docs" --extended-regexp | sed 's/^- docs: /- /; s/^- docs(/- (/')
+            other=$(git log "$RANGE" --pretty=format:"- %s" --grep="^refactor\|^chore\|^ci\|^perf\|^style\|^test" --extended-regexp | sed 's/^- [a-z]*: /- /; s/^- [a-z]*(/- (/')
+
+            if [ -n "$feat" ]; then
+              echo "### Features"
+              echo "$feat"
+              echo ""
+            fi
+            if [ -n "$fix" ]; then
+              echo "### Fixes"
+              echo "$fix"
+              echo ""
+            fi
+            if [ -n "$docs" ]; then
+              echo "### Docs"
+              echo "$docs"
+              echo ""
+            fi
+            if [ -n "$other" ]; then
+              echo "### Other"
+              echo "$other"
+              echo ""
+            fi
+
+            if [ -n "$PREV_TAG" ]; then
+              echo "**Full Changelog**: [\`${PREV_TAG}...${GITHUB_REF_NAME}\`](https://github.com/$GITHUB_REPOSITORY/compare/${PREV_TAG}...${GITHUB_REF_NAME})"
+              echo ""
+            fi
+
+            echo "## Install"
+            echo "Download \`DelayNoMore.zip\`, unzip, and drag to Applications."
+            echo ""
+            echo "First launch on macOS 15+:"
+            echo "\`\`\`"
+            echo "xattr -d com.apple.quarantine /Applications/DelayNoMore.app"
+            echo "\`\`\`"
+            echo ""
+            echo "## Verify (SHA256)"
+            echo "\`\`\`"
+            echo "${SHA256}  DelayNoMore.zip"
+            echo "\`\`\`"
+          } > release-notes.md
+
       - name: Create release
         run: |
           gh release create "$GITHUB_REF_NAME" \
             DelayNoMore.zip \
             --title "$GITHUB_REF_NAME" \
-            --generate-notes
+            --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ github.token }}
