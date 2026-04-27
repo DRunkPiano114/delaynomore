@@ -28,10 +28,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         buildMenu()
         startClock()
 
-        if validImagePath() != nil {
-            model.start()
-        }
-
         updateMenu()
     }
 
