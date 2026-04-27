@@ -10,7 +10,7 @@ final class ReminderWindowController {
 
         dismiss(animated: false)
 
-        let targetFrame = Self.targetFrame(for: screen)
+        let targetFrame = Self.targetFrame(for: screen, imageSize: image.size)
         let imageView = NSImageView(frame: NSRect(origin: .zero, size: targetFrame.size))
         imageView.image = image
         imageView.imageAlignment = .alignCenter
@@ -81,16 +81,27 @@ final class ReminderWindowController {
         } ?? NSScreen.main ?? NSScreen.screens.first
     }
 
-    private static func targetFrame(for screen: NSScreen) -> NSRect {
+    private static func targetFrame(for screen: NSScreen, imageSize: NSSize) -> NSRect {
         let visibleFrame = screen.visibleFrame
-        let width = visibleFrame.width * 0.55
-        let height = visibleFrame.height * 0.55
+        let targetSize = Self.targetSize(
+            for: imageSize,
+            maxSize: NSSize(width: visibleFrame.width * 0.55, height: visibleFrame.height * 0.55)
+        )
 
         return NSRect(
-            x: visibleFrame.midX - width / 2,
-            y: visibleFrame.midY - height / 2,
-            width: width,
-            height: height
+            x: visibleFrame.midX - targetSize.width / 2,
+            y: visibleFrame.midY - targetSize.height / 2,
+            width: targetSize.width,
+            height: targetSize.height
         )
+    }
+
+    private static func targetSize(for imageSize: NSSize, maxSize: NSSize) -> NSSize {
+        guard imageSize.width > 0, imageSize.height > 0 else {
+            return maxSize
+        }
+
+        let scale = min(maxSize.width / imageSize.width, maxSize.height / imageSize.height)
+        return NSSize(width: imageSize.width * scale, height: imageSize.height * scale)
     }
 }

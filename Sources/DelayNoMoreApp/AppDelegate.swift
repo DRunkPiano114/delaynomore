@@ -37,9 +37,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func buildMenu() {
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "timer", accessibilityDescription: "DelayNoMore")
             button.imagePosition = .imageLeft
-            button.title = " DelayNoMore"
+            button.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
         }
 
         [startItem, pauseItem, resetItem, setImageItem, setWorkDurationItem, setBreakDurationItem, skipBreakItem].forEach {
@@ -278,7 +277,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         skipBreakItem.isEnabled = model.phase.isRestLike
 
         if let button = statusItem.button {
-            button.title = " \(buttonTitle)"
+            let status = statusItemPresentation
+            let image = NSImage(systemSymbolName: status.symbolName, accessibilityDescription: status.accessibilityDescription)
+            image?.isTemplate = true
+
+            button.image = image
+            button.title = status.title.isEmpty ? "" : " \(status.title)"
+            button.toolTip = status.accessibilityDescription
+            button.setAccessibilityLabel(status.accessibilityDescription)
         }
     }
 
@@ -300,16 +306,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private var buttonTitle: String {
+    private var statusItemPresentation: (symbolName: String, title: String, accessibilityDescription: String) {
         switch model.phase {
         case .idle:
-            return "DelayNoMore"
+            return ("timer", "", "DelayNoMore idle")
         case .work(let remainingSeconds):
-            return "Work \(formatClock(remainingSeconds))"
+            let clock = formatClock(remainingSeconds)
+            return ("timer", clock, "DelayNoMore work ends in \(clock)")
         case .rest(let remainingSeconds):
-            return "Break \(formatClock(remainingSeconds))"
-        case .paused:
-            return "Paused"
+            let clock = formatClock(remainingSeconds)
+            return ("pause.circle", clock, "DelayNoMore break ends in \(clock)")
+        case .paused(let previous):
+            let clock = formatClock(previous.remainingSeconds)
+            return ("pause.circle", clock, "DelayNoMore paused with \(clock) remaining")
         }
     }
 
