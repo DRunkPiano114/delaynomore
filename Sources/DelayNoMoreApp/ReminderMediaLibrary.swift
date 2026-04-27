@@ -18,7 +18,6 @@ struct BuiltInReminderMedia {
     let title: String
     let resourceName: String
     let resourceExtension: String
-    let subdirectory: String
     let kind: MediaKind
 }
 
@@ -31,7 +30,6 @@ enum ReminderMediaLibrary {
             title: "Lucky Cat",
             resourceName: "lucky-cat",
             resourceExtension: "mp4",
-            subdirectory: "BuiltInReminders",
             kind: .video
         ),
         BuiltInReminderMedia(
@@ -39,7 +37,6 @@ enum ReminderMediaLibrary {
             title: "Fox & Skunk",
             resourceName: "cartoon-fox-skunk",
             resourceExtension: "mp4",
-            subdirectory: "BuiltInReminders",
             kind: .video
         ),
         BuiltInReminderMedia(
@@ -47,7 +44,6 @@ enum ReminderMediaLibrary {
             title: "Cat Den",
             resourceName: "cozy-cat-house",
             resourceExtension: "mp4",
-            subdirectory: "BuiltInReminders",
             kind: .video
         ),
         BuiltInReminderMedia(
@@ -55,7 +51,6 @@ enum ReminderMediaLibrary {
             title: "Black Cat",
             resourceName: "black-cat-eyes",
             resourceExtension: "mp4",
-            subdirectory: "BuiltInReminders",
             kind: .video
         ),
         BuiltInReminderMedia(
@@ -63,7 +58,6 @@ enum ReminderMediaLibrary {
             title: "Fireplace",
             resourceName: "fireplace",
             resourceExtension: "mp4",
-            subdirectory: "BuiltInReminders",
             kind: .video
         ),
         BuiltInReminderMedia(
@@ -71,7 +65,6 @@ enum ReminderMediaLibrary {
             title: "Rain on Puddle",
             resourceName: "rain-puddle",
             resourceExtension: "mp4",
-            subdirectory: "BuiltInReminders",
             kind: .video
         ),
         BuiltInReminderMedia(
@@ -79,7 +72,6 @@ enum ReminderMediaLibrary {
             title: "Evening Lights",
             resourceName: "evening-lights",
             resourceExtension: "mp4",
-            subdirectory: "BuiltInReminders",
             kind: .video
         )
     ]
@@ -142,6 +134,12 @@ enum ReminderMediaLibrary {
         }
     }
 
+    static func videoURL(for media: ReminderMedia?) -> URL? {
+        guard let media, let asset = asset(for: media) else { return nil }
+        if case .video(let url) = asset { return url }
+        return nil
+    }
+
     static func isAvailable(_ media: ReminderMedia?) -> Bool {
         guard let media else {
             return false
@@ -154,8 +152,7 @@ enum ReminderMediaLibrary {
         guard let builtIn = builtIns.first(where: { $0.id == id }),
               let url = Bundle.module.url(
                   forResource: builtIn.resourceName,
-                  withExtension: builtIn.resourceExtension,
-                  subdirectory: builtIn.subdirectory
+                  withExtension: builtIn.resourceExtension
               ) else {
             return nil
         }

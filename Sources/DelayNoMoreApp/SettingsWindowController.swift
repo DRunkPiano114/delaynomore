@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import DelayNoMoreCore
 
 final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
@@ -114,6 +115,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
 
             let tile = ReminderTile(kind: .builtIn(builtIn.id), title: builtIn.title)
             tile.image = ReminderMediaLibrary.previewImage(for: media)
+            tile.videoURL = ReminderMediaLibrary.videoURL(for: media)
             tile.onClick = { [weak self] in self?.selectBuiltIn(id: builtIn.id) }
             tiles.append(tile)
         }
@@ -172,9 +174,11 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         if isCustom, let media = config.reminder, let preview = ReminderMediaLibrary.previewImage(for: media) {
             tile.image = preview
             tile.title = ReminderMediaLibrary.title(for: media)
+            tile.videoURL = ReminderMediaLibrary.videoURL(for: media)
         } else {
             tile.image = nil
             tile.title = "Custom..."
+            tile.videoURL = nil
         }
     }
 
@@ -463,6 +467,8 @@ final class ReminderTile: NSView {
         didSet { titleLabel.stringValue = title }
     }
 
+    var videoURL: URL?
+
     var isSelected: Bool = false {
         didSet { updateSelectionAppearance() }
     }
@@ -471,6 +477,8 @@ final class ReminderTile: NSView {
     private let titleLabel = NSTextField(labelWithString: "")
     private let placeholderView = NSImageView()
     private let imageContainer = NSView()
+    private var playerLayer: AVPlayerLayer?
+    private var player: AVPlayer?
 
     private static let titleSpacing: CGFloat = 4
     private static let titleHeight: CGFloat = 16
@@ -540,6 +548,14 @@ final class ReminderTile: NSView {
 
         updatePlaceholder()
         updateSelectionAppearance()
+
+        let trackingArea = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(trackingArea)
     }
 
     @available(*, unavailable)
@@ -551,8 +567,16 @@ final class ReminderTile: NSView {
         onClick?()
     }
 
+    override func mouseEntered(with event: NSEvent) {
+        startPreview()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        stopPreview()
+    }
+
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard !isHidden, alphaValue > 0, bounds.contains(point) else {
+        guard !isHidden, alphaValue > 0, frame.contains(point) else {
             return nil
         }
 
@@ -571,6 +595,45 @@ final class ReminderTile: NSView {
     private func updatePlaceholder() {
         placeholderView.isHidden = image != nil
         imageView.isHidden = image == nil
+    }
+
+    private func startPreview() {
+        guard let videoURL, playerLayer == nil else { return }
+
+        let player = AVPlayer(url: videoURL)
+        player.isMuted = true
+
+        let layer = AVPlayerLayer(player: player)
+        layer.videoGravity = .resizeAspectFill
+        layer.cornerRadius = 8
+        layer.masksToBounds = true
+        layer.frame = imageContainer.bounds
+        imageContainer.layer?.addSublayer(layer)
+
+        self.player = player
+        self.playerLayer = layer
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerDidFinish),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: player.currentItem
+        )
+
+        player.play()
+    }
+
+    private func stopPreview() {
+        player?.pause()
+        playerLayer?.removeFromSuperlayer()
+        playerLayer = nil
+        player = nil
+        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
+    }
+
+    @objc private func playerDidFinish(_ notification: Notification) {
+        player?.seek(to: .zero)
+        player?.play()
     }
 
     private func updateSelectionAppearance() {

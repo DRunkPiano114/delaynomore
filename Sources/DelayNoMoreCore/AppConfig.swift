@@ -44,7 +44,7 @@ public struct AppConfig: Codable, Equatable {
     public static let breakMinuteRange = 1...60
 
     public static let `default` = AppConfig(
-        reminder: nil,
+        reminder: .builtIn(id: "cozy-cat-house"),
         workMinutes: defaultWorkMinutes,
         breakMinutes: defaultBreakMinutes
     )
@@ -89,7 +89,7 @@ public struct AppConfig: Codable, Equatable {
         let reminder = try container.decodeIfPresent(ReminderMedia.self, forKey: .reminder)
         let legacyImagePath = try container.decodeIfPresent(String.self, forKey: .imagePath)
 
-        self.reminder = reminder ?? legacyImagePath.map { .customImage(path: $0) }
+        self.reminder = reminder ?? legacyImagePath.map { .customImage(path: $0) } ?? Self.default.reminder
         self.workMinutes = try container.decodeIfPresent(Int.self, forKey: .workMinutes) ?? Self.defaultWorkMinutes
         self.breakMinutes = try container.decodeIfPresent(Int.self, forKey: .breakMinutes) ?? Self.defaultBreakMinutes
     }

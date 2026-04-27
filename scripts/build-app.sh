@@ -13,6 +13,11 @@ rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR"
 cp "$ROOT_DIR/.build/release/DelayNoMore" "$MACOS_DIR/DelayNoMore"
 
+for bundle in "$ROOT_DIR/.build/release/"*.bundle; do
+  [ -e "$bundle" ] || continue
+  cp -R "$bundle" "$MACOS_DIR/"
+done
+
 cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
