@@ -38,6 +38,28 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertEqual(store.load().reminder, .customImage(path: "/tmp/rest.png"))
     }
 
+    func testDefaultConfigUsesCatDenReminder() {
+        XCTAssertEqual(AppConfig.default.reminder, .builtIn(id: "cozy-cat-house"))
+    }
+
+    func testLoadDefaultsToBuiltInReminderWhenReminderIsMissing() throws {
+        let directory = temporaryDirectory()
+        let store = ConfigStore(directoryURL: directory)
+        let configWithoutReminder = """
+        {
+          "workMinutes": 30,
+          "breakMinutes": 10
+        }
+        """
+
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data(configWithoutReminder.utf8).write(to: store.configURL)
+
+        let loaded = store.load()
+        XCTAssertEqual(loaded.reminder, AppConfig.default.reminder)
+        XCTAssertEqual(loaded.workMinutes, 30)
+    }
+
     func testInvalidDurationsAreRejected() {
         XCTAssertThrowsError(try AppConfig.validateWorkMinutes(0))
         XCTAssertThrowsError(try AppConfig.validateWorkMinutes(241))

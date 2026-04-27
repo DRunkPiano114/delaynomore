@@ -16,7 +16,7 @@ cp "$ROOT_DIR/.build/release/DelayNoMore" "$MACOS_DIR/DelayNoMore"
 
 for bundle in "$ROOT_DIR/.build/release/"*.bundle; do
   [ -e "$bundle" ] || continue
-  cp -R "$bundle" "$MACOS_DIR/"
+  cp -R "$bundle" "$APP_DIR/"
 done
 
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
