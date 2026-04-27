@@ -6,13 +6,15 @@ A minimal native macOS break reminder. Runs from the menu bar, counts down a wor
 
 Download the latest `DelayNoMore.zip` from [Releases](https://github.com/DRunkPiano114/delaynomore/releases), unzip, and drag `DelayNoMore.app` to your Applications folder.
 
-Since the app is not signed with an Apple Developer ID, macOS will block it on first launch. To open it:
+Since the app is not signed with an Apple Developer ID, macOS will block it on first launch.
 
-1. Right-click (or Control-click) `DelayNoMore.app`
-2. Choose **Open**
-3. Click **Open** in the dialog
+If you see **"DelayNoMore is damaged and can't be opened"**, run this in Terminal:
 
-You only need to do this once.
+```bash
+xattr -cr /Applications/DelayNoMore.app
+```
+
+Then open the app normally. You only need to do this once.
 
 ## Features
 
