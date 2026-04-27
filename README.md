@@ -1,29 +1,42 @@
 # DelayNoMore
 
-DelayNoMore is a minimal native macOS break reminder. It runs from the menu bar, counts down a work period, then shows a strong centered media reminder for the full break period.
+A minimal native macOS break reminder. Runs from the menu bar, counts down a work period, then shows a full-screen media reminder for the entire break.
 
-## Development
+## Install
 
-```bash
-swift build
-swift test
-swift run DelayNoMore
-```
+Download the latest `DelayNoMore.zip` from [Releases](https://github.com/DRunkPiano114/delaynomore/releases), unzip, and drag `DelayNoMore.app` to your Applications folder.
 
-To package a local `.app` bundle:
+Since the app is not signed with an Apple Developer ID, macOS will block it on first launch. To open it:
+
+1. Right-click (or Control-click) `DelayNoMore.app`
+2. Choose **Open**
+3. Click **Open** in the dialog
+
+You only need to do this once.
+
+## Features
+
+- Menu bar app with work/break countdown timer
+- 7 built-in video reminders (cats, fireplace, rain, and more)
+- Custom image or video reminders
+- Hover-to-preview videos in settings
+- Configurable work and break durations
+
+## Build from source
+
+Requires macOS 13+ and Swift 5.9+.
 
 ```bash
 ./scripts/build-app.sh
 open .build/app/DelayNoMore.app
 ```
 
-## Behavior
+Or run directly without packaging:
 
-- Work duration defaults to 25 minutes.
-- Break duration defaults to 5 minutes.
-- The app always starts idle; choose `Start` from the menu bar to begin a work countdown.
-- The reminder media window supports images and muted looping videos.
-- The reminder media window is borderless, focused, always on top, and uses 55% of the active screen's visible width and height.
-- The reminder media fades in at the center of the active screen.
-- Choose `Skip Break` from the menu bar to end the current break early.
-- After each break ends, the app returns to idle instead of starting another work cycle automatically.
+```bash
+swift run DelayNoMore
+```
+
+## License
+
+[MIT](LICENSE)
