@@ -227,7 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         stateItem.title = stateTitle
         stateItem.image = Self.menuSymbol(status.symbolName)
         configurePrimaryAction()
-        stopItem.isHidden = model.phase == .idle
+        stopItem.isHidden = shouldHideStopItem
 
         if let button = statusItem.button {
             let image = NSImage(systemSymbolName: status.symbolName, accessibilityDescription: status.accessibilityDescription)
@@ -237,6 +237,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.title = status.title.isEmpty ? "" : " \(status.title)"
             button.toolTip = status.accessibilityDescription
             button.setAccessibilityLabel(status.accessibilityDescription)
+        }
+    }
+
+    private var shouldHideStopItem: Bool {
+        switch model.phase {
+        case .idle, .rest:
+            return true
+        case .work, .paused:
+            return false
         }
     }
 

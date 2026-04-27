@@ -7,6 +7,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     private var config: AppConfig
 
     private let imageNameField = NSTextField(labelWithString: "")
+    private let imagePreviewView = NSImageView()
     private let workField = NSTextField()
     private let breakField = NSTextField()
     private let workStepper = NSStepper()
@@ -17,7 +18,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         self.onChange = onChange
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 430, height: 260),
+            contentRect: NSRect(x: 0, y: 0, width: 430, height: 318),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -45,6 +46,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
 
         imageNameField.stringValue = imageTitle(for: config.imagePath)
         imageNameField.textColor = validImagePath(config.imagePath) == nil ? .tertiaryLabelColor : .secondaryLabelColor
+        updateImagePreview(path: config.imagePath)
 
         workField.integerValue = config.workMinutes
         workStepper.integerValue = config.workMinutes
@@ -58,19 +60,17 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         }
 
         let title = NSTextField(labelWithString: "Settings")
-        title.font = .systemFont(ofSize: 22, weight: .semibold)
+        title.font = .systemFont(ofSize: 24, weight: .semibold)
 
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 18
+        stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         stack.addArrangedSubview(title)
-        stack.addArrangedSubview(makeImageRow())
-        stack.addArrangedSubview(makeSeparator())
-        stack.addArrangedSubview(makeDurationRow(title: "Work", field: workField, stepper: workStepper, range: AppConfig.workMinuteRange))
-        stack.addArrangedSubview(makeDurationRow(title: "Break", field: breakField, stepper: breakStepper, range: AppConfig.breakMinuteRange))
+        stack.addArrangedSubview(makeImageSection())
+        stack.addArrangedSubview(makeDurationsSection())
 
         let doneButton = NSButton(title: "Done", target: self, action: #selector(closeWindow))
         doneButton.bezelStyle = .rounded
@@ -87,40 +87,85 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 28),
             stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -28),
-            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 30)
+            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24)
         ])
     }
 
-    private func makeImageRow() -> NSView {
+    private func makeImageSection() -> NSView {
+        imagePreviewView.imageAlignment = .alignCenter
+        imagePreviewView.imageScaling = .scaleProportionallyUpOrDown
+        imagePreviewView.wantsLayer = true
+        imagePreviewView.layer?.cornerRadius = 10
+        imagePreviewView.layer?.masksToBounds = true
+        imagePreviewView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        imagePreviewView.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        imagePreviewView.heightAnchor.constraint(equalToConstant: 44).isActive = true
+
+        let label = NSTextField(labelWithString: "Reminder Image")
+        label.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+
         imageNameField.lineBreakMode = .byTruncatingMiddle
         imageNameField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        imageNameField.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+
+        let textStack = NSStackView(views: [label, imageNameField])
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 3
+        textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         let chooseButton = NSButton(title: "Choose...", target: self, action: #selector(chooseImage))
         chooseButton.bezelStyle = .rounded
         chooseButton.image = Self.symbol("photo")
         chooseButton.imagePosition = .imageLeading
 
-        let control = NSStackView(views: [imageNameField, chooseButton])
-        control.orientation = .horizontal
-        control.alignment = .centerY
-        control.spacing = 12
-        control.widthAnchor.constraint(equalToConstant: 258).isActive = true
+        let row = NSStackView(views: [imagePreviewView, textStack, chooseButton])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 14
 
-        return makeRow(title: "Reminder Image", control: control)
+        return makeBox(containing: row, height: 74)
+    }
+
+    private func makeDurationsSection() -> NSView {
+        let workRow = makeDurationRow(
+            title: "Work",
+            symbolName: "timer",
+            field: workField,
+            stepper: workStepper,
+            range: AppConfig.workMinuteRange
+        )
+        let breakRow = makeDurationRow(
+            title: "Break",
+            symbolName: "pause.circle",
+            field: breakField,
+            stepper: breakStepper,
+            range: AppConfig.breakMinuteRange
+        )
+        let separator = makeSeparator()
+
+        let stack = NSStackView(views: [workRow, separator, breakRow])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 10
+
+        return makeBox(containing: stack, height: 106)
     }
 
     private func makeDurationRow(
         title: String,
+        symbolName: String,
         field: NSTextField,
         stepper: NSStepper,
         range: ClosedRange<Int>
     ) -> NSView {
         field.alignment = .right
+        field.bezelStyle = .roundedBezel
         field.delegate = self
         field.target = self
         field.action = #selector(durationFieldChanged)
         field.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
-        field.widthAnchor.constraint(equalToConstant: 56).isActive = true
+        field.widthAnchor.constraint(equalToConstant: 64).isActive = true
 
         let minuteLabel = NSTextField(labelWithString: "min")
         minuteLabel.textColor = .secondaryLabelColor
@@ -131,33 +176,64 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         stepper.target = self
         stepper.action = #selector(stepperChanged)
 
+        let icon = NSImageView(image: Self.symbol(symbolName) ?? NSImage())
+        icon.contentTintColor = .secondaryLabelColor
+        icon.widthAnchor.constraint(equalToConstant: 18).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 18).isActive = true
+
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+        label.widthAnchor.constraint(equalToConstant: 178).isActive = true
+
+        let labelStack = NSStackView(views: [icon, label])
+        labelStack.orientation = .horizontal
+        labelStack.alignment = .centerY
+        labelStack.spacing = 9
+
         let control = NSStackView(views: [field, minuteLabel, stepper])
         control.orientation = .horizontal
         control.alignment = .centerY
         control.spacing = 8
 
-        return makeRow(title: title, control: control)
-    }
-
-    private func makeRow(title: String, control: NSView) -> NSView {
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
-        label.textColor = .labelColor
-        label.widthAnchor.constraint(equalToConstant: 116).isActive = true
-
-        let row = NSStackView(views: [label, control])
+        let row = NSStackView(views: [labelStack, control])
         row.orientation = .horizontal
         row.alignment = .centerY
-        row.spacing = 16
-        row.widthAnchor.constraint(equalToConstant: 374).isActive = true
+        row.spacing = 12
+        row.widthAnchor.constraint(equalToConstant: 342).isActive = true
         return row
     }
 
     private func makeSeparator() -> NSView {
         let separator = NSBox()
         separator.boxType = .separator
-        separator.widthAnchor.constraint(equalToConstant: 374).isActive = true
+        separator.widthAnchor.constraint(equalToConstant: 342).isActive = true
         return separator
+    }
+
+    private func makeBox(containing view: NSView, height: CGFloat) -> NSView {
+        let box = NSBox()
+        box.boxType = .custom
+        box.titlePosition = .noTitle
+        box.borderColor = .separatorColor
+        box.fillColor = .controlBackgroundColor
+        box.cornerRadius = 12
+        box.contentViewMargins = NSSize(width: 16, height: 12)
+        box.widthAnchor.constraint(equalToConstant: 374).isActive = true
+        box.heightAnchor.constraint(equalToConstant: height).isActive = true
+
+        guard let contentView = box.contentView else {
+            return box
+        }
+
+        view.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(view)
+        NSLayoutConstraint.activate([
+            view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            view.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+        ])
+
+        return box
     }
 
     @objc private func chooseImage() {
@@ -253,6 +329,16 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         }
 
         return URL(fileURLWithPath: path).lastPathComponent
+    }
+
+    private func updateImagePreview(path: String?) {
+        if let path, let image = NSImage(contentsOfFile: path) {
+            imagePreviewView.image = image
+            imagePreviewView.contentTintColor = nil
+        } else {
+            imagePreviewView.image = Self.symbol("photo")
+            imagePreviewView.contentTintColor = .tertiaryLabelColor
+        }
     }
 
     private func validImagePath(_ path: String?) -> String? {
