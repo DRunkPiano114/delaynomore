@@ -1,6 +1,5 @@
 import AppKit
 import DelayNoMoreCore
-import UniformTypeIdentifiers
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -73,7 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch transition {
         case .enteredRest:
-            showReminderOrPromptForImage()
+            showReminderOrPromptForMedia()
         case .finishedRest:
             reminderController?.dismiss(animated: true)
         case .none:
@@ -84,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func start() {
-        guard validImagePath() != nil || chooseImage() else {
+        guard validReminder() != nil || chooseMedia() else {
             updateMenu()
             return
         }
@@ -128,67 +127,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateMenu()
     }
 
-    private func showReminderOrPromptForImage() {
-        guard let imagePath = validImagePath() else {
+    private func showReminderOrPromptForMedia() {
+        guard let reminder = validReminder() else {
             showAlert(
-                title: "Choose a Reminder Image",
-                message: "DelayNoMore needs a valid image before it can show break reminders."
+                title: "Choose Reminder Media",
+                message: "DelayNoMore needs a valid image or video before it can show break reminders."
             )
 
-            guard chooseImage(), let imagePath = validImagePath() else {
+            guard chooseMedia(), let reminder = validReminder() else {
                 _ = model.skipRest()
                 return
             }
 
-            _ = reminderController?.showImage(at: imagePath)
+            _ = reminderController?.show(media: reminder)
             return
         }
 
-        if reminderController?.showImage(at: imagePath) != true {
+        if reminderController?.show(media: reminder) != true {
             showAlert(
-                title: "Image Could Not Be Loaded",
-                message: "Choose another reminder image to continue."
+                title: "Reminder Media Could Not Be Loaded",
+                message: "Choose another image or video to continue."
             )
 
-            guard chooseImage(), let imagePath = validImagePath() else {
+            guard chooseMedia(), let reminder = validReminder() else {
                 _ = model.skipRest()
                 return
             }
 
-            _ = reminderController?.showImage(at: imagePath)
+            _ = reminderController?.show(media: reminder)
         }
     }
 
-    private func chooseImage() -> Bool {
+    private func chooseMedia() -> Bool {
         let panel = NSOpenPanel()
-        panel.title = "Choose Reminder Image"
-        panel.message = "Choose an image to show during breaks."
+        panel.title = "Choose Reminder Media"
+        panel.message = "Choose an image or video to show during breaks."
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.image]
+        panel.allowedContentTypes = ReminderMediaLibrary.allowedContentTypes
 
         guard panel.runModal() == .OK, let url = panel.url else {
             return false
         }
 
-        guard NSImage(contentsOf: url) != nil else {
-            showAlert(title: "Unsupported Image", message: "Choose a file macOS can load as an image.")
+        guard let reminder = ReminderMediaLibrary.media(for: url) else {
+            showAlert(title: "Unsupported Media", message: "Choose an image or video macOS can load.")
             return false
         }
 
-        config.imagePath = url.path
+        config.reminder = reminder
         saveConfig()
         settingsController?.update(config: config)
         return true
     }
 
-    private func validImagePath() -> String? {
-        guard let path = config.imagePath, NSImage(contentsOfFile: path) != nil else {
+    private func validReminder() -> ReminderMedia? {
+        guard let reminder = config.reminder, ReminderMediaLibrary.isAvailable(reminder) else {
             return nil
         }
 
-        return path
+        return reminder
     }
 
     private func saveConfig() {

@@ -1,13 +1,12 @@
 import AppKit
 import DelayNoMoreCore
-import UniformTypeIdentifiers
 
 final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     private let onChange: (AppConfig) -> Void
     private var config: AppConfig
 
-    private let imageNameField = NSTextField(labelWithString: "")
-    private let imagePreviewView = NSImageView()
+    private let mediaNameField = NSTextField(labelWithString: "")
+    private let mediaPreviewView = NSImageView()
     private let workField = NSTextField()
     private let breakField = NSTextField()
     private let workStepper = NSStepper()
@@ -44,9 +43,9 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     func update(config: AppConfig) {
         self.config = config
 
-        imageNameField.stringValue = imageTitle(for: config.imagePath)
-        imageNameField.textColor = validImagePath(config.imagePath) == nil ? .tertiaryLabelColor : .secondaryLabelColor
-        updateImagePreview(path: config.imagePath)
+        mediaNameField.stringValue = ReminderMediaLibrary.title(for: config.reminder)
+        mediaNameField.textColor = ReminderMediaLibrary.isAvailable(config.reminder) ? .secondaryLabelColor : .tertiaryLabelColor
+        updateMediaPreview(media: config.reminder)
 
         workField.integerValue = config.workMinutes
         workStepper.integerValue = config.workMinutes
@@ -69,7 +68,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         stack.addArrangedSubview(title)
-        stack.addArrangedSubview(makeImageSection())
+        stack.addArrangedSubview(makeMediaSection())
         stack.addArrangedSubview(makeDurationsSection())
 
         let doneButton = NSButton(title: "Done", target: self, action: #selector(closeWindow))
@@ -91,35 +90,35 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         ])
     }
 
-    private func makeImageSection() -> NSView {
-        imagePreviewView.imageAlignment = .alignCenter
-        imagePreviewView.imageScaling = .scaleProportionallyUpOrDown
-        imagePreviewView.wantsLayer = true
-        imagePreviewView.layer?.cornerRadius = 10
-        imagePreviewView.layer?.masksToBounds = true
-        imagePreviewView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-        imagePreviewView.widthAnchor.constraint(equalToConstant: 44).isActive = true
-        imagePreviewView.heightAnchor.constraint(equalToConstant: 44).isActive = true
+    private func makeMediaSection() -> NSView {
+        mediaPreviewView.imageAlignment = .alignCenter
+        mediaPreviewView.imageScaling = .scaleProportionallyUpOrDown
+        mediaPreviewView.wantsLayer = true
+        mediaPreviewView.layer?.cornerRadius = 10
+        mediaPreviewView.layer?.masksToBounds = true
+        mediaPreviewView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        mediaPreviewView.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        mediaPreviewView.heightAnchor.constraint(equalToConstant: 44).isActive = true
 
-        let label = NSTextField(labelWithString: "Reminder Image")
+        let label = NSTextField(labelWithString: "Reminder Media")
         label.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
 
-        imageNameField.lineBreakMode = .byTruncatingMiddle
-        imageNameField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        imageNameField.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        mediaNameField.lineBreakMode = .byTruncatingMiddle
+        mediaNameField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        mediaNameField.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
 
-        let textStack = NSStackView(views: [label, imageNameField])
+        let textStack = NSStackView(views: [label, mediaNameField])
         textStack.orientation = .vertical
         textStack.alignment = .leading
         textStack.spacing = 3
         textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let chooseButton = NSButton(title: "Choose...", target: self, action: #selector(chooseImage))
+        let chooseButton = NSButton(title: "Choose...", target: self, action: #selector(chooseMedia))
         chooseButton.bezelStyle = .rounded
-        chooseButton.image = Self.symbol("photo")
+        chooseButton.image = Self.symbol("photo.on.rectangle")
         chooseButton.imagePosition = .imageLeading
 
-        let row = NSStackView(views: [imagePreviewView, textStack, chooseButton])
+        let row = NSStackView(views: [mediaPreviewView, textStack, chooseButton])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 14
@@ -236,16 +235,16 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         return box
     }
 
-    @objc private func chooseImage() {
+    @objc private func chooseMedia() {
         let panel = NSOpenPanel()
-        panel.title = "Choose Reminder Image"
+        panel.title = "Choose Reminder Media"
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.image]
+        panel.allowedContentTypes = ReminderMediaLibrary.allowedContentTypes
 
         guard let window else {
-            runImagePanel(panel)
+            runMediaPanel(panel)
             return
         }
 
@@ -254,26 +253,26 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
                 return
             }
 
-            self?.applyImage(url)
+            self?.applyMedia(url)
         }
     }
 
-    private func runImagePanel(_ panel: NSOpenPanel) {
+    private func runMediaPanel(_ panel: NSOpenPanel) {
         guard panel.runModal() == .OK, let url = panel.url else {
             return
         }
 
-        applyImage(url)
+        applyMedia(url)
     }
 
-    private func applyImage(_ url: URL) {
-        guard NSImage(contentsOf: url) != nil else {
-            showAlert(title: "Unsupported Image", message: "Choose a file macOS can load as an image.")
+    private func applyMedia(_ url: URL) {
+        guard let reminder = ReminderMediaLibrary.media(for: url) else {
+            showAlert(title: "Unsupported Media", message: "Choose an image or video macOS can load.")
             return
         }
 
         var nextConfig = config
-        nextConfig.imagePath = url.path
+        nextConfig.reminder = reminder
         apply(nextConfig)
     }
 
@@ -323,30 +322,15 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         onChange(nextConfig)
     }
 
-    private func imageTitle(for path: String?) -> String {
-        guard let path, validImagePath(path) != nil else {
-            return "None"
+    private func updateMediaPreview(media: ReminderMedia?) {
+        if let image = ReminderMediaLibrary.previewImage(for: media) {
+            mediaPreviewView.image = image
+            mediaPreviewView.contentTintColor = nil
+            return
         }
 
-        return URL(fileURLWithPath: path).lastPathComponent
-    }
-
-    private func updateImagePreview(path: String?) {
-        if let path, let image = NSImage(contentsOfFile: path) {
-            imagePreviewView.image = image
-            imagePreviewView.contentTintColor = nil
-        } else {
-            imagePreviewView.image = Self.symbol("photo")
-            imagePreviewView.contentTintColor = .tertiaryLabelColor
-        }
-    }
-
-    private func validImagePath(_ path: String?) -> String? {
-        guard let path, NSImage(contentsOfFile: path) != nil else {
-            return nil
-        }
-
-        return path
+        mediaPreviewView.image = Self.symbol(media?.kind == .customVideo ? "play.rectangle" : "photo")
+        mediaPreviewView.contentTintColor = .tertiaryLabelColor
     }
 
     private func clamped(_ value: Int, to range: ClosedRange<Int>) -> Int {

@@ -16,8 +16,13 @@ let package = Package(
         .executableTarget(
             name: "DelayNoMoreApp",
             dependencies: ["DelayNoMoreCore"],
+            resources: [
+                .process("Resources")
+            ],
             linkerSettings: [
-                .linkedFramework("AppKit")
+                .linkedFramework("AppKit"),
+                .linkedFramework("AVFoundation"),
+                .linkedFramework("AVKit")
             ]
         ),
         .testTarget(
