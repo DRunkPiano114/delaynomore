@@ -4,20 +4,86 @@ import AVKit
 import DelayNoMoreCore
 
 final class ReminderWindowController {
-    private var window: NSWindow?
-    private var player: AVQueuePlayer?
-    private var playerLooper: AVPlayerLooper?
-    private var countdownLabel: NSTextField?
+    private struct Surface {
+        let window: NSWindow
+        let countdownLabel: NSTextField
+        let player: AVQueuePlayer?
+        let playerLooper: AVPlayerLooper?
+    }
+
+    private var surfaces: [Surface] = []
 
     func show(media: ReminderMedia) -> Bool {
-        guard let asset = ReminderMediaLibrary.asset(for: media), let screen = targetScreen() else {
+        guard let asset = ReminderMediaLibrary.asset(for: media) else {
+            return false
+        }
+
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else {
             return false
         }
 
         dismiss(animated: false)
 
-        let overlayFrame = screen.visibleFrame
         let naturalSize = Self.naturalSize(for: asset)
+
+        for screen in screens {
+            let surface = makeSurface(asset: asset, screen: screen, naturalSize: naturalSize)
+            surfaces.append(surface)
+
+            surface.window.orderFrontRegardless()
+            surface.player?.play()
+
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.5
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                surface.window.animator().alphaValue = 1
+            }
+        }
+
+        return true
+    }
+
+    func updateCountdown(_ remainingSeconds: Int) {
+        let text = formatClock(remainingSeconds)
+        for surface in surfaces {
+            surface.countdownLabel.stringValue = text
+        }
+    }
+
+    func dismiss(animated: Bool) {
+        guard !surfaces.isEmpty else {
+            return
+        }
+
+        let toDismiss = surfaces
+        surfaces = []
+
+        let closeAll = {
+            for surface in toDismiss {
+                surface.player?.pause()
+                surface.window.orderOut(nil)
+                surface.window.close()
+            }
+        }
+
+        guard animated else {
+            closeAll()
+            return
+        }
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            for surface in toDismiss {
+                surface.window.animator().alphaValue = 0
+            }
+        } completionHandler: {
+            closeAll()
+        }
+    }
+
+    private func makeSurface(asset: ReminderMediaAsset, screen: NSScreen, naturalSize: NSSize) -> Surface {
+        let overlayFrame = screen.visibleFrame
         let mediaSize = Self.targetSize(
             for: naturalSize,
             maxSize: NSSize(width: overlayFrame.width * 0.55, height: overlayFrame.height * 0.55)
@@ -64,63 +130,12 @@ final class ReminderWindowController {
         )
         renderedContent.view.addSubview(countdown)
 
-        self.window = window
-        self.countdownLabel = countdown
-        player = renderedContent.player
-        playerLooper = renderedContent.playerLooper
-
-        window.orderFrontRegardless()
-        player?.play()
-
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.5
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            window.animator().alphaValue = 1
-        }
-
-        return true
-    }
-
-    func updateCountdown(_ remainingSeconds: Int) {
-        countdownLabel?.stringValue = formatClock(remainingSeconds)
-    }
-
-    func dismiss(animated: Bool) {
-        guard let window else {
-            return
-        }
-
-        let closeWindow = { [weak self] in
-            self?.player?.pause()
-            self?.player = nil
-            self?.playerLooper = nil
-            self?.countdownLabel = nil
-            window.orderOut(nil)
-            window.close()
-            if self?.window === window {
-                self?.window = nil
-            }
-        }
-
-        guard animated else {
-            closeWindow()
-            return
-        }
-
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            window.animator().alphaValue = 0
-        } completionHandler: {
-            closeWindow()
-        }
-    }
-
-    private func targetScreen() -> NSScreen? {
-        let mouseLocation = NSEvent.mouseLocation
-
-        return NSScreen.screens.first { screen in
-            NSMouseInRect(mouseLocation, screen.frame, false)
-        } ?? NSScreen.main ?? NSScreen.screens.first
+        return Surface(
+            window: window,
+            countdownLabel: countdown,
+            player: renderedContent.player,
+            playerLooper: renderedContent.playerLooper
+        )
     }
 
     private static func targetSize(for mediaSize: NSSize, maxSize: NSSize) -> NSSize {
