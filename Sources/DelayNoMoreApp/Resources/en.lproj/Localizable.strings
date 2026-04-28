@@ -37,6 +37,11 @@
 "settings.timer.break" = "Break";
 "settings.timer.break.subtitle" = "Rest duration";
 "settings.timer.unit" = "min";
+"settings.timer.hourUnit" = "hr";
+"settings.timer.minuteUnit" = "min";
+"settings.timer.secondUnit" = "sec";
+"settings.timer.repeat" = "Repeat";
+"settings.timer.repeat.subtitle" = "Start work again after each break";
 "settings.checking" = "Checking…";
 "settings.checkForUpdates" = "Check for Updates";
 "settings.done" = "Done";

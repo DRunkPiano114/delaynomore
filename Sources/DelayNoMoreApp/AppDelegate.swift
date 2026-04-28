@@ -206,11 +206,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try nextConfig.validate()
 
             var nextModel = model
-            if nextConfig.workMinutes != config.workMinutes {
-                try nextModel.setWorkMinutes(nextConfig.workMinutes)
+            if nextConfig.workSeconds != config.workSeconds {
+                try nextModel.setWorkSeconds(nextConfig.workSeconds)
             }
-            if nextConfig.breakMinutes != config.breakMinutes {
-                try nextModel.setBreakMinutes(nextConfig.breakMinutes)
+            if nextConfig.breakSeconds != config.breakSeconds {
+                try nextModel.setBreakSeconds(nextConfig.breakSeconds)
+            }
+            if nextConfig.repeats != config.repeats {
+                nextModel.setRepeats(nextConfig.repeats)
             }
 
             config = nextConfig

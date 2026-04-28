@@ -74,10 +74,12 @@ public struct TimerModel: Equatable {
     public private(set) var phase: TimerPhase
     public private(set) var workSeconds: Int
     public private(set) var breakSeconds: Int
+    public private(set) var repeats: Bool
 
     public init(config: AppConfig, phase: TimerPhase = .idle) {
-        self.workSeconds = config.workMinutes * 60
-        self.breakSeconds = config.breakMinutes * 60
+        self.workSeconds = config.workSeconds
+        self.breakSeconds = config.breakSeconds
+        self.repeats = config.repeats
         self.phase = phase
     }
 
@@ -119,7 +121,7 @@ public struct TimerModel: Equatable {
             phase = .rest(remainingSeconds: remainingSeconds - 1)
             return .none
         case .rest:
-            phase = .idle
+            phase = repeats ? .work(remainingSeconds: workSeconds) : .idle
             return .finishedRest
         case .idle, .paused:
             return .none
@@ -135,9 +137,9 @@ public struct TimerModel: Equatable {
         return .finishedRest
     }
 
-    public mutating func setWorkMinutes(_ minutes: Int) throws {
-        try AppConfig.validateWorkMinutes(minutes)
-        workSeconds = minutes * 60
+    public mutating func setWorkSeconds(_ seconds: Int) throws {
+        try AppConfig.validateWorkSeconds(seconds)
+        workSeconds = seconds
 
         switch phase {
         case .work:
@@ -151,9 +153,9 @@ public struct TimerModel: Equatable {
         }
     }
 
-    public mutating func setBreakMinutes(_ minutes: Int) throws {
-        try AppConfig.validateBreakMinutes(minutes)
-        breakSeconds = minutes * 60
+    public mutating func setBreakSeconds(_ seconds: Int) throws {
+        try AppConfig.validateBreakSeconds(seconds)
+        breakSeconds = seconds
 
         switch phase {
         case .rest:
@@ -165,6 +167,20 @@ public struct TimerModel: Equatable {
         case .idle, .work:
             break
         }
+    }
+
+    public mutating func setRepeats(_ repeats: Bool) {
+        self.repeats = repeats
+    }
+
+    @available(*, deprecated, message: "Use setWorkSeconds(_:) instead.")
+    public mutating func setWorkMinutes(_ minutes: Int) throws {
+        try setWorkSeconds(minutes * 60)
+    }
+
+    @available(*, deprecated, message: "Use setBreakSeconds(_:) instead.")
+    public mutating func setBreakMinutes(_ minutes: Int) throws {
+        try setBreakSeconds(minutes * 60)
     }
 }
 

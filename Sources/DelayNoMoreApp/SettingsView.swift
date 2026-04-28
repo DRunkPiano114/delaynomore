@@ -27,7 +27,7 @@ struct SettingsView: View {
             footerSection
         }
         .padding(24)
-        .frame(width: 440)
+        .frame(width: 500)
     }
 
     private var mediaSection: some View {
@@ -82,87 +82,74 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader(LocalizedStringKey("settings.section.timer"), icon: "clock.fill")
 
-            VStack(spacing: 0) {
-                durationRow(
+            VStack(spacing: 10) {
+                DurationCard(
                     title: LocalizedStringKey("settings.timer.work"),
                     subtitle: LocalizedStringKey("settings.timer.work.subtitle"),
                     symbolName: "deskclock",
                     color: .blue,
-                    value: Binding(
-                        get: { store.config.workMinutes },
-                        set: { applyWorkMinutes($0) }
+                    seconds: Binding(
+                        get: { store.config.workSeconds },
+                        set: { applyWorkSeconds($0) }
                     ),
-                    range: AppConfig.workMinuteRange
+                    range: AppConfig.workSecondRange
                 )
 
-                Divider()
-                    .padding(.leading, 46)
-
-                durationRow(
+                DurationCard(
                     title: LocalizedStringKey("settings.timer.break"),
                     subtitle: LocalizedStringKey("settings.timer.break.subtitle"),
                     symbolName: "cup.and.saucer",
                     color: .green,
-                    value: Binding(
-                        get: { store.config.breakMinutes },
-                        set: { applyBreakMinutes($0) }
+                    seconds: Binding(
+                        get: { store.config.breakSeconds },
+                        set: { applyBreakSeconds($0) }
                     ),
-                    range: AppConfig.breakMinuteRange
+                    range: AppConfig.breakSecondRange
                 )
-            }
-            .background(Color(.controlBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(Color(.separatorColor), lineWidth: 0.5)
-            )
 
+                repeatToggleRow
+            }
         }
-        .sectionStyle()
+        .padding(.horizontal, 14)
     }
 
-    private func durationRow(
-        title: LocalizedStringKey,
-        subtitle: LocalizedStringKey,
-        symbolName: String,
-        color: Color,
-        value: Binding<Int>,
-        range: ClosedRange<Int>
-    ) -> some View {
+    private var repeatToggleRow: some View {
         HStack(spacing: 10) {
-            Image(systemName: symbolName)
-                .font(.system(size: 14))
+            Image(systemName: "repeat")
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(width: 28, height: 28)
-                .background(color.gradient, in: RoundedRectangle(cornerRadius: 7))
+                .background(Color.purple.gradient, in: RoundedRectangle(cornerRadius: 7))
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(title, bundle: .module)
-                    .font(.system(size: 13))
-                Text(subtitle, bundle: .module)
+                Text("settings.timer.repeat", bundle: .module)
+                    .font(.system(size: 13, weight: .medium))
+                Text("settings.timer.repeat.subtitle", bundle: .module)
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
 
             Spacer()
 
-            HStack(spacing: 4) {
-                TextField("", value: value, format: .number)
-                    .frame(width: 48)
-                    .multilineTextAlignment(.trailing)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 13, design: .monospaced))
-
-                Text("settings.timer.unit", bundle: .module)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-
-                Stepper("", value: value, in: range)
-                    .labelsHidden()
-            }
+            Toggle(
+                "",
+                isOn: Binding(
+                    get: { store.config.repeats },
+                    set: { applyRepeats($0) }
+                )
+            )
+            .labelsHidden()
+            .controlSize(.small)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 10)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.controlBackgroundColor).opacity(0.7))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color(.separatorColor).opacity(0.55), lineWidth: 0.5)
+        )
     }
 
     private var footerSection: some View {
@@ -213,13 +200,18 @@ struct SettingsView: View {
         }
     }
 
-    private func applyWorkMinutes(_ minutes: Int) {
-        store.config.workMinutes = min(max(minutes, AppConfig.workMinuteRange.lowerBound), AppConfig.workMinuteRange.upperBound)
+    private func applyWorkSeconds(_ seconds: Int) {
+        store.config.workSeconds = min(max(seconds, AppConfig.workSecondRange.lowerBound), AppConfig.workSecondRange.upperBound)
         onChange(store.config)
     }
 
-    private func applyBreakMinutes(_ minutes: Int) {
-        store.config.breakMinutes = min(max(minutes, AppConfig.breakMinuteRange.lowerBound), AppConfig.breakMinuteRange.upperBound)
+    private func applyBreakSeconds(_ seconds: Int) {
+        store.config.breakSeconds = min(max(seconds, AppConfig.breakSecondRange.lowerBound), AppConfig.breakSecondRange.upperBound)
+        onChange(store.config)
+    }
+
+    private func applyRepeats(_ repeats: Bool) {
+        store.config.repeats = repeats
         onChange(store.config)
     }
 
@@ -237,6 +229,249 @@ struct SettingsView: View {
 
         store.config.reminder = reminder
         onChange(store.config)
+    }
+}
+
+private enum TimeComponent: Hashable {
+    case hour
+    case minute
+    case second
+
+    var next: TimeComponent? {
+        switch self {
+        case .hour:
+            return .minute
+        case .minute:
+            return .second
+        case .second:
+            return nil
+        }
+    }
+}
+
+private struct DurationCard: View {
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
+    let symbolName: String
+    let color: Color
+    @Binding var seconds: Int
+    let range: ClosedRange<Int>
+
+    @FocusState private var focusedComponent: TimeComponent?
+
+    private var hours: Int { seconds / 3600 }
+    private var minutes: Int { (seconds % 3600) / 60 }
+    private var secondsComponent: Int { seconds % 60 }
+    private var hourRange: ClosedRange<Int> { 0...(range.upperBound / 3600) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            timeEditor
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            HStack(spacing: 10) {
+                Image(systemName: symbolName)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 28, height: 28)
+                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 7))
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title, bundle: .module)
+                        .font(.system(size: 13, weight: .medium))
+                    Text(subtitle, bundle: .module)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.controlBackgroundColor).opacity(0.82))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color(.separatorColor).opacity(0.65), lineWidth: 0.5)
+        )
+    }
+
+    private var timeEditor: some View {
+        HStack(alignment: .bottom, spacing: 7) {
+            segment(
+                component: .hour,
+                unit: LocalizedStringKey("settings.timer.hourUnit"),
+                value: hours,
+                range: hourRange
+            ) { set(.hour, to: $0) }
+
+            separator
+
+            segment(
+                component: .minute,
+                unit: LocalizedStringKey("settings.timer.minuteUnit"),
+                value: minutes,
+                range: 0...59
+            ) { set(.minute, to: $0) }
+
+            separator
+
+            segment(
+                component: .second,
+                unit: LocalizedStringKey("settings.timer.secondUnit"),
+                value: secondsComponent,
+                range: 0...59
+            ) { set(.second, to: $0) }
+        }
+    }
+
+    private var separator: some View {
+        Text(":")
+            .font(.system(size: 42, weight: .light, design: .monospaced))
+            .foregroundColor(Color(.secondaryLabelColor))
+            .padding(.bottom, 1)
+            .frame(width: 10)
+    }
+
+    private func segment(
+        component: TimeComponent,
+        unit: LocalizedStringKey,
+        value: Int,
+        range: ClosedRange<Int>,
+        onCommit: @escaping (Int) -> Int
+    ) -> some View {
+        VStack(spacing: 4) {
+            Text(unit, bundle: .module)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(Color(.secondaryLabelColor))
+
+            TimeSegmentField(
+                component: component,
+                value: value,
+                range: range,
+                focusedComponent: $focusedComponent,
+                onCommit: onCommit
+            ) {
+                focusedComponent = component.next
+            }
+        }
+        .frame(width: 70)
+    }
+
+    private func set(_ component: TimeComponent, to value: Int) -> Int {
+        let nextHours: Int
+        let nextMinutes: Int
+        let nextSeconds: Int
+
+        switch component {
+        case .hour:
+            nextHours = clamp(value, to: hourRange)
+            nextMinutes = minutes
+            nextSeconds = secondsComponent
+        case .minute:
+            nextHours = hours
+            nextMinutes = clamp(value, to: 0...59)
+            nextSeconds = secondsComponent
+        case .second:
+            nextHours = hours
+            nextMinutes = minutes
+            nextSeconds = clamp(value, to: 0...59)
+        }
+
+        let nextTotal = nextHours * 3600 + nextMinutes * 60 + nextSeconds
+        let clampedTotal = clamp(nextTotal, to: range)
+        seconds = clampedTotal
+
+        return componentValue(of: component, in: clampedTotal)
+    }
+
+    private func componentValue(of component: TimeComponent, in totalSeconds: Int) -> Int {
+        switch component {
+        case .hour:
+            return totalSeconds / 3600
+        case .minute:
+            return (totalSeconds % 3600) / 60
+        case .second:
+            return totalSeconds % 60
+        }
+    }
+
+    private func clamp(_ value: Int, to range: ClosedRange<Int>) -> Int {
+        min(max(value, range.lowerBound), range.upperBound)
+    }
+}
+
+private struct TimeSegmentField: View {
+    let component: TimeComponent
+    let value: Int
+    let range: ClosedRange<Int>
+    let focusedComponent: FocusState<TimeComponent?>.Binding
+    let onCommit: (Int) -> Int
+    let onAdvance: () -> Void
+
+    @State private var draft = ""
+
+    var body: some View {
+        TextField("", text: $draft)
+            .font(.system(size: 44, weight: .light, design: .monospaced))
+            .foregroundColor(Color(.labelColor))
+            .multilineTextAlignment(.center)
+            .textFieldStyle(.plain)
+            .frame(width: 70, height: 52)
+            .focused(focusedComponent, equals: component)
+            .onAppear {
+                draft = formatted(value)
+            }
+            .onChange(of: value) { newValue in
+                if focusedComponent.wrappedValue != component {
+                    draft = formatted(newValue)
+                }
+            }
+            .onChange(of: focusedComponent.wrappedValue) { focused in
+                if focused == component {
+                    draft = ""
+                } else {
+                    commit()
+                }
+            }
+            .onChange(of: draft) { newValue in
+                normalize(newValue)
+            }
+            .onSubmit {
+                commit()
+                onAdvance()
+            }
+    }
+
+    private func normalize(_ newValue: String) {
+        guard focusedComponent.wrappedValue == component else { return }
+
+        let sanitized = String(newValue.filter(\.isNumber).prefix(2))
+        guard sanitized == newValue else {
+            draft = sanitized
+            return
+        }
+
+        if sanitized.count == 2 {
+            commit()
+            DispatchQueue.main.async {
+                onAdvance()
+            }
+        }
+    }
+
+    private func commit() {
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parsed = Int(trimmed) ?? value
+        let clamped = min(max(parsed, range.lowerBound), range.upperBound)
+        let normalized = onCommit(clamped)
+        draft = formatted(normalized)
+    }
+
+    private func formatted(_ value: Int) -> String {
+        String(format: "%02d", value)
     }
 }
 

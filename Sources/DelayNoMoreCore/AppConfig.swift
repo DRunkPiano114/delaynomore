@@ -38,20 +38,43 @@ public struct ReminderMedia: Codable, Equatable {
 }
 
 public struct AppConfig: Codable, Equatable {
-    public static let defaultWorkMinutes = 25
-    public static let defaultBreakMinutes = 5
+    public static let defaultWorkSeconds = 25 * 60
+    public static let defaultBreakSeconds = 5 * 60
+    public static let workSecondRange = 1...(4 * 60 * 60)
+    public static let breakSecondRange = 1...(60 * 60)
+
+    @available(*, deprecated, message: "Use defaultWorkSeconds instead.")
+    public static let defaultWorkMinutes = defaultWorkSeconds / 60
+    @available(*, deprecated, message: "Use defaultBreakSeconds instead.")
+    public static let defaultBreakMinutes = defaultBreakSeconds / 60
+    @available(*, deprecated, message: "Use workSecondRange instead.")
     public static let workMinuteRange = 1...240
+    @available(*, deprecated, message: "Use breakSecondRange instead.")
     public static let breakMinuteRange = 1...60
 
     public static let `default` = AppConfig(
         reminder: .builtIn(id: "cozy-cat-house"),
-        workMinutes: defaultWorkMinutes,
-        breakMinutes: defaultBreakMinutes
+        workSeconds: defaultWorkSeconds,
+        breakSeconds: defaultBreakSeconds,
+        repeats: false
     )
 
     public var reminder: ReminderMedia?
-    public var workMinutes: Int
-    public var breakMinutes: Int
+    public var workSeconds: Int
+    public var breakSeconds: Int
+    public var repeats: Bool
+
+    @available(*, deprecated, message: "Use workSeconds instead.")
+    public var workMinutes: Int {
+        get { workSeconds / 60 }
+        set { workSeconds = newValue * 60 }
+    }
+
+    @available(*, deprecated, message: "Use breakSeconds instead.")
+    public var breakMinutes: Int {
+        get { breakSeconds / 60 }
+        set { breakSeconds = newValue * 60 }
+    }
 
     public var imagePath: String? {
         get {
@@ -69,17 +92,39 @@ public struct AppConfig: Codable, Equatable {
     public init(
         reminder: ReminderMedia? = nil,
         imagePath: String? = nil,
-        workMinutes: Int = defaultWorkMinutes,
-        breakMinutes: Int = defaultBreakMinutes
+        workSeconds: Int = defaultWorkSeconds,
+        breakSeconds: Int = defaultBreakSeconds,
+        repeats: Bool = false
     ) {
         self.reminder = reminder ?? imagePath.map { .customImage(path: $0) }
-        self.workMinutes = workMinutes
-        self.breakMinutes = breakMinutes
+        self.workSeconds = workSeconds
+        self.breakSeconds = breakSeconds
+        self.repeats = repeats
+    }
+
+    @available(*, deprecated, message: "Use init(reminder:imagePath:workSeconds:breakSeconds:) instead.")
+    public init(
+        reminder: ReminderMedia? = nil,
+        imagePath: String? = nil,
+        workMinutes: Int,
+        breakMinutes: Int,
+        repeats: Bool = false
+    ) {
+        self.init(
+            reminder: reminder,
+            imagePath: imagePath,
+            workSeconds: workMinutes * 60,
+            breakSeconds: breakMinutes * 60,
+            repeats: repeats
+        )
     }
 
     private enum CodingKeys: String, CodingKey {
         case reminder
         case imagePath
+        case workSeconds
+        case breakSeconds
+        case repeats
         case workMinutes
         case breakMinutes
     }
@@ -88,45 +133,71 @@ public struct AppConfig: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let reminder = try container.decodeIfPresent(ReminderMedia.self, forKey: .reminder)
         let legacyImagePath = try container.decodeIfPresent(String.self, forKey: .imagePath)
+        let workSeconds = try container.decodeIfPresent(Int.self, forKey: .workSeconds)
+        let breakSeconds = try container.decodeIfPresent(Int.self, forKey: .breakSeconds)
+        let legacyWorkMinutes = try container.decodeIfPresent(Int.self, forKey: .workMinutes)
+        let legacyBreakMinutes = try container.decodeIfPresent(Int.self, forKey: .breakMinutes)
 
         self.reminder = reminder ?? legacyImagePath.map { .customImage(path: $0) } ?? Self.default.reminder
-        self.workMinutes = try container.decodeIfPresent(Int.self, forKey: .workMinutes) ?? Self.defaultWorkMinutes
-        self.breakMinutes = try container.decodeIfPresent(Int.self, forKey: .breakMinutes) ?? Self.defaultBreakMinutes
+        self.workSeconds = workSeconds ?? legacyWorkMinutes.map { $0 * 60 } ?? Self.defaultWorkSeconds
+        self.breakSeconds = breakSeconds ?? legacyBreakMinutes.map { $0 * 60 } ?? Self.defaultBreakSeconds
+        self.repeats = try container.decodeIfPresent(Bool.self, forKey: .repeats) ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         try container.encodeIfPresent(reminder, forKey: .reminder)
-        try container.encode(workMinutes, forKey: .workMinutes)
-        try container.encode(breakMinutes, forKey: .breakMinutes)
+        try container.encode(workSeconds, forKey: .workSeconds)
+        try container.encode(breakSeconds, forKey: .breakSeconds)
+        try container.encode(repeats, forKey: .repeats)
     }
 
+    public mutating func setWorkSeconds(_ seconds: Int) throws {
+        try Self.validateWorkSeconds(seconds)
+        workSeconds = seconds
+    }
+
+    public mutating func setBreakSeconds(_ seconds: Int) throws {
+        try Self.validateBreakSeconds(seconds)
+        breakSeconds = seconds
+    }
+
+    @available(*, deprecated, message: "Use setWorkSeconds(_:) instead.")
     public mutating func setWorkMinutes(_ minutes: Int) throws {
-        try Self.validateWorkMinutes(minutes)
-        workMinutes = minutes
+        try setWorkSeconds(minutes * 60)
     }
 
+    @available(*, deprecated, message: "Use setBreakSeconds(_:) instead.")
     public mutating func setBreakMinutes(_ minutes: Int) throws {
-        try Self.validateBreakMinutes(minutes)
-        breakMinutes = minutes
+        try setBreakSeconds(minutes * 60)
     }
 
     public func validate() throws {
-        try Self.validateWorkMinutes(workMinutes)
-        try Self.validateBreakMinutes(breakMinutes)
+        try Self.validateWorkSeconds(workSeconds)
+        try Self.validateBreakSeconds(breakSeconds)
     }
 
+    public static func validateWorkSeconds(_ seconds: Int) throws {
+        guard workSecondRange.contains(seconds) else {
+            throw DurationValidationError.workOutOfRange(seconds)
+        }
+    }
+
+    public static func validateBreakSeconds(_ seconds: Int) throws {
+        guard breakSecondRange.contains(seconds) else {
+            throw DurationValidationError.breakOutOfRange(seconds)
+        }
+    }
+
+    @available(*, deprecated, message: "Use validateWorkSeconds(_:) instead.")
     public static func validateWorkMinutes(_ minutes: Int) throws {
-        guard workMinuteRange.contains(minutes) else {
-            throw DurationValidationError.workOutOfRange(minutes)
-        }
+        try validateWorkSeconds(minutes * 60)
     }
 
+    @available(*, deprecated, message: "Use validateBreakSeconds(_:) instead.")
     public static func validateBreakMinutes(_ minutes: Int) throws {
-        guard breakMinuteRange.contains(minutes) else {
-            throw DurationValidationError.breakOutOfRange(minutes)
-        }
+        try validateBreakSeconds(minutes * 60)
     }
 }
 
@@ -137,9 +208,9 @@ public enum DurationValidationError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .workOutOfRange:
-            return "Work duration must be between 1 and 240 minutes."
+            return "Work duration must be between 1 second and 4 hours."
         case .breakOutOfRange:
-            return "Break duration must be between 1 and 60 minutes."
+            return "Break duration must be between 1 second and 1 hour."
         }
     }
 }

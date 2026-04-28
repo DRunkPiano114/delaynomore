@@ -37,6 +37,11 @@
 "settings.timer.break" = "休息";
 "settings.timer.break.subtitle" = "休息时长";
 "settings.timer.unit" = "分钟";
+"settings.timer.hourUnit" = "时";
+"settings.timer.minuteUnit" = "分";
+"settings.timer.secondUnit" = "秒";
+"settings.timer.repeat" = "循环";
+"settings.timer.repeat.subtitle" = "每次休息结束后重新开始工作";
 "settings.checking" = "检查中…";
 "settings.checkForUpdates" = "检查更新";
 "settings.done" = "完成";
