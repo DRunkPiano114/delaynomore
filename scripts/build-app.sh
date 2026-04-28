@@ -8,6 +8,7 @@ CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 
 cd "$ROOT_DIR"
+rm -rf "$ROOT_DIR/.build/release/"*.bundle
 swift build -c release
 
 rm -rf "$APP_DIR"
