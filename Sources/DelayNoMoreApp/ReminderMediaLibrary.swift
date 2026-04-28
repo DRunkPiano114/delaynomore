@@ -33,13 +33,6 @@ enum ReminderMediaLibrary {
             kind: .video
         ),
         BuiltInReminderMedia(
-            id: "cartoon-fox-skunk",
-            title: "Fox & Skunk",
-            resourceName: "cartoon-fox-skunk",
-            resourceExtension: "mp4",
-            kind: .video
-        ),
-        BuiltInReminderMedia(
             id: "cozy-cat-house",
             title: "Cat Den",
             resourceName: "cozy-cat-house",
