@@ -23,37 +23,8 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 mkdir -p "$RESOURCES_DIR"
 cp "$ROOT_DIR/Sources/DelayNoMoreApp/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
 
-cat > "$CONTENTS_DIR/Info.plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleDevelopmentRegion</key>
-  <string>en</string>
-  <key>CFBundleExecutable</key>
-  <string>DelayNoMore</string>
-  <key>CFBundleIdentifier</key>
-  <string>com.delaynomore.app</string>
-  <key>CFBundleInfoDictionaryVersion</key>
-  <string>6.0</string>
-  <key>CFBundleName</key>
-  <string>DelayNoMore</string>
-  <key>CFBundlePackageType</key>
-  <string>APPL</string>
-  <key>CFBundleShortVersionString</key>
-  <string>${APP_VERSION}</string>
-  <key>CFBundleVersion</key>
-  <string>1</string>
-  <key>LSMinimumSystemVersion</key>
-  <string>13.0</string>
-  <key>LSUIElement</key>
-  <true/>
-  <key>CFBundleIconFile</key>
-  <string>AppIcon</string>
-  <key>NSHighResolutionCapable</key>
-  <true/>
-</dict>
-</plist>
-PLIST
+sed "s|__APP_VERSION__|${APP_VERSION}|g" \
+  "$ROOT_DIR/App/Info.plist" \
+  > "$CONTENTS_DIR/Info.plist"
 
 echo "Built $APP_DIR"
