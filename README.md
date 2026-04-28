@@ -8,9 +8,9 @@ Most break reminders show a notification you dismiss in one second. DelayNoMore 
 
 ## Why DelayNoMore
 
-- **Native and lightweight** — built in Swift, not Electron. Uses barely any memory compared to alternatives like Stretchly (~150MB) or Break Timer.
+- **Native and lightweight** — built in Swift. About 8 MB on disk and ~40 MB of memory at runtime.
 - **Video takeover, not a black screen** — instead of dimming your display or showing text, it plays a calming video that makes you *want* to take a break.
-- **Works out of the box** — 7 built-in video reminders included. No setup, no configuration required.
+- **Works out of the box** — 6 built-in video reminders included. No setup, no configuration required.
 - **Simple on purpose** — one job, done well. No micro-breaks, no stats dashboards, no notification spam.
 
 ## Install
@@ -32,7 +32,7 @@ Then open the app normally. You only need to do this once.
 ## Features
 
 - Menu bar app with work/break countdown timer
-- 7 built-in video reminders (cats, fireplace, rain, and more)
+- 6 built-in video reminders (cats, fireplace, rain, and more)
 - Custom image or video reminders
 - Hover-to-preview videos in settings
 - Configurable work and break durations
