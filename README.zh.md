@@ -44,12 +44,6 @@ xattr -d com.apple.quarantine /Applications/DelayNoMore.app
 open .build/app/DelayNoMore.app
 ```
 
-或直接运行（不打包）：
-
-```bash
-swift run DelayNoMore
-```
-
 ## 开发
 
 | 命令 | 作用 |

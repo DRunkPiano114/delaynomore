@@ -46,12 +46,6 @@ Requires macOS 13+ and Swift 5.9+.
 open .build/app/DelayNoMore.app
 ```
 
-Or run directly without packaging:
-
-```bash
-swift run DelayNoMore
-```
-
 ## Development
 
 | Command | What it does |
