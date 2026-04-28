@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate()
+        store.flush()
     }
 
     private func buildMenu() {
@@ -194,11 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func saveConfig() {
-        do {
-            try store.save(config)
-        } catch {
-            showAlert(title: "Could Not Save Settings", message: error.localizedDescription)
-        }
+        store.scheduleSave(config)
     }
 
     private func applyConfig(_ nextConfig: AppConfig) {

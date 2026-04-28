@@ -5,11 +5,20 @@ public final class ConfigStore {
 
     private let directoryURL: URL
     private let fileManager: FileManager
+    private let ioQueue = DispatchQueue(label: "com.delaynomore.config-io")
+    private let debounceInterval: TimeInterval
+    private var pendingConfig: AppConfig?
+    private var pendingWorkItem: DispatchWorkItem?
 
-    public init(directoryURL: URL? = nil, fileManager: FileManager = .default) {
+    public init(
+        directoryURL: URL? = nil,
+        fileManager: FileManager = .default,
+        debounceInterval: TimeInterval = 0.25
+    ) {
         self.fileManager = fileManager
         self.directoryURL = directoryURL ?? Self.defaultDirectoryURL(fileManager: fileManager)
         self.configURL = self.directoryURL.appendingPathComponent("config.json", isDirectory: false)
+        self.debounceInterval = debounceInterval
     }
 
     public func load() -> AppConfig {
@@ -28,6 +37,51 @@ public final class ConfigStore {
     }
 
     public func save(_ config: AppConfig) throws {
+        try config.validate()
+        try ioQueue.sync {
+            pendingWorkItem?.cancel()
+            pendingWorkItem = nil
+            pendingConfig = nil
+            try writeToDisk(config)
+        }
+    }
+
+    public func scheduleSave(_ config: AppConfig) {
+        ioQueue.async { [weak self] in
+            guard let self else { return }
+            self.pendingWorkItem?.cancel()
+            self.pendingConfig = config
+
+            let item = DispatchWorkItem { [weak self] in
+                guard let self, let pending = self.pendingConfig else { return }
+                do {
+                    try self.writeToDisk(pending)
+                } catch {
+                    NSLog("DelayNoMore: failed to persist config: \(error.localizedDescription)")
+                }
+                self.pendingConfig = nil
+                self.pendingWorkItem = nil
+            }
+            self.pendingWorkItem = item
+            self.ioQueue.asyncAfter(deadline: .now() + self.debounceInterval, execute: item)
+        }
+    }
+
+    public func flush() {
+        ioQueue.sync {
+            pendingWorkItem?.cancel()
+            pendingWorkItem = nil
+            guard let pending = pendingConfig else { return }
+            do {
+                try writeToDisk(pending)
+            } catch {
+                NSLog("DelayNoMore: failed to persist config on flush: \(error.localizedDescription)")
+            }
+            pendingConfig = nil
+        }
+    }
+
+    private func writeToDisk(_ config: AppConfig) throws {
         try config.validate()
         try fileManager.createDirectory(
             at: directoryURL,

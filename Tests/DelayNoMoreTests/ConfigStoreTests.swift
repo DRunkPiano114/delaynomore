@@ -67,6 +67,46 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertThrowsError(try AppConfig.validateBreakMinutes(61))
     }
 
+    func testScheduleSaveCoalescesRapidWrites() {
+        let directory = temporaryDirectory()
+        let store = ConfigStore(directoryURL: directory, debounceInterval: 0.05)
+
+        for minutes in 26...40 {
+            store.scheduleSave(AppConfig(workMinutes: minutes, breakMinutes: 5))
+        }
+
+        store.flush()
+
+        XCTAssertEqual(store.load().workMinutes, 40)
+    }
+
+    func testFlushPersistsLatestPending() {
+        let directory = temporaryDirectory()
+        let store = ConfigStore(directoryURL: directory, debounceInterval: 60)
+
+        store.scheduleSave(AppConfig(workMinutes: 33, breakMinutes: 7))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: store.configURL.path))
+
+        store.flush()
+
+        let loaded = store.load()
+        XCTAssertEqual(loaded.workMinutes, 33)
+        XCTAssertEqual(loaded.breakMinutes, 7)
+    }
+
+    func testSaveCancelsPendingScheduledWrite() throws {
+        let directory = temporaryDirectory()
+        let store = ConfigStore(directoryURL: directory, debounceInterval: 60)
+
+        store.scheduleSave(AppConfig(workMinutes: 33, breakMinutes: 7))
+        try store.save(AppConfig(workMinutes: 50, breakMinutes: 10))
+        store.flush()
+
+        let loaded = store.load()
+        XCTAssertEqual(loaded.workMinutes, 50)
+        XCTAssertEqual(loaded.breakMinutes, 10)
+    }
+
     private func temporaryDirectory() -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
