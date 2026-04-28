@@ -52,6 +52,15 @@ Or run directly without packaging:
 swift run DelayNoMore
 ```
 
+## Development
+
+| Command | What it does |
+|---|---|
+| `swift test` | Run unit tests |
+| `./scripts/dev.sh` | Kill any running instance, rebuild, and launch the .app |
+| `./scripts/check.sh` | Tests + .app bundle structure check (run before commit) |
+| `./scripts/build-app.sh` | Just build the .app bundle |
+
 ## License
 
 [MIT](LICENSE)

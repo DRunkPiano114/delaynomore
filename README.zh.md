@@ -50,6 +50,15 @@ open .build/app/DelayNoMore.app
 swift run DelayNoMore
 ```
 
+## 开发
+
+| 命令 | 作用 |
+|---|---|
+| `swift test` | 跑单元测试 |
+| `./scripts/dev.sh` | 杀掉运行中的实例，重新构建并启动 .app |
+| `./scripts/check.sh` | 单元测试 + .app bundle 结构检查（提交前跑）|
+| `./scripts/build-app.sh` | 只构建 .app bundle |
+
 ## 许可证
 
 [MIT](LICENSE)
