@@ -18,7 +18,7 @@ final class SettingsWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "Settings"
+        window.title = L10n.string("settings.title")
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
@@ -61,7 +61,10 @@ final class SettingsWindowController: NSWindowController {
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let tagName = json["tag_name"] as? String,
                       let htmlURL = json["html_url"] as? String else {
-                    self?.showAlert(title: "Update Check Failed", message: "Could not reach GitHub. Try again later.")
+                    self?.showAlert(
+                        title: L10n.string("update.failed.title"),
+                        message: L10n.string("update.failed.message")
+                    )
                     return
                 }
 
@@ -69,10 +72,10 @@ final class SettingsWindowController: NSWindowController {
 
                 if remoteVersion.compare(currentVersion, options: .numeric) == .orderedDescending {
                     let alert = NSAlert()
-                    alert.messageText = "Update Available"
-                    alert.informativeText = "A new version (\(remoteVersion)) is available. You are running \(currentVersion)."
-                    alert.addButton(withTitle: "Download")
-                    alert.addButton(withTitle: "Later")
+                    alert.messageText = L10n.string("update.available.title")
+                    alert.informativeText = L10n.string("update.available.message", remoteVersion, currentVersion)
+                    alert.addButton(withTitle: L10n.string("button.download"))
+                    alert.addButton(withTitle: L10n.string("button.later"))
 
                     if let window = self?.window {
                         alert.beginSheetModal(for: window) { response in
@@ -82,7 +85,10 @@ final class SettingsWindowController: NSWindowController {
                         }
                     }
                 } else {
-                    self?.showAlert(title: "You're Up to Date", message: "DelayNoMore \(currentVersion) is the latest version.")
+                    self?.showAlert(
+                        title: L10n.string("update.upToDate.title"),
+                        message: L10n.string("update.upToDate.message", currentVersion)
+                    )
                 }
             }
         }.resume()
@@ -93,7 +99,7 @@ final class SettingsWindowController: NSWindowController {
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: L10n.string("button.ok"))
 
         if let window {
             alert.beginSheetModal(for: window)

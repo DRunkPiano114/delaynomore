@@ -4,11 +4,11 @@ import DelayNoMoreCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
-    private let stateItem = NSMenuItem(title: "Idle", action: nil, keyEquivalent: "")
-    private let startItem = NSMenuItem(title: "Start", action: #selector(start), keyEquivalent: "")
-    private let stopItem = NSMenuItem(title: "Stop", action: #selector(stop), keyEquivalent: "")
-    private let settingsItem = NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: "")
-    private let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+    private let stateItem = NSMenuItem(title: L10n.string("menu.idle"), action: nil, keyEquivalent: "")
+    private let startItem = NSMenuItem(title: L10n.string("menu.start"), action: #selector(start), keyEquivalent: "")
+    private let stopItem = NSMenuItem(title: L10n.string("menu.stop"), action: #selector(stop), keyEquivalent: "")
+    private let settingsItem = NSMenuItem(title: L10n.string("menu.settings"), action: #selector(showSettings), keyEquivalent: "")
+    private let quitItem = NSMenuItem(title: L10n.string("menu.quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
     private let store = ConfigStore()
     private var config = AppConfig.default
@@ -134,8 +134,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showReminderOrPromptForMedia() {
         guard let reminder = validReminder() else {
             showAlert(
-                title: "Choose Reminder Media",
-                message: "DelayNoMore needs a valid image or video before it can show break reminders."
+                title: L10n.string("alert.chooseMedia.title"),
+                message: L10n.string("alert.chooseMedia.message")
             )
 
             guard chooseMedia(), let reminder = validReminder() else {
@@ -149,8 +149,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if reminderController?.show(media: reminder) != true {
             showAlert(
-                title: "Reminder Media Could Not Be Loaded",
-                message: "Choose another image or video to continue."
+                title: L10n.string("alert.mediaCouldNotLoad.title"),
+                message: L10n.string("alert.mediaCouldNotLoad.message")
             )
 
             guard chooseMedia(), let reminder = validReminder() else {
@@ -164,8 +164,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func chooseMedia() -> Bool {
         let panel = NSOpenPanel()
-        panel.title = "Choose Reminder Media"
-        panel.message = "Choose an image or video to show during breaks."
+        panel.title = L10n.string("panel.chooseMedia.title")
+        panel.message = L10n.string("panel.chooseMedia.message")
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
@@ -176,7 +176,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         guard let reminder = ReminderMediaLibrary.media(for: url) else {
-            showAlert(title: "Unsupported Media", message: "Choose an image or video macOS can load.")
+            showAlert(
+                title: L10n.string("alert.unsupportedMedia.title"),
+                message: L10n.string("alert.unsupportedMedia.message")
+            )
             return false
         }
 
@@ -214,7 +217,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             model = nextModel
             saveConfig()
         } catch {
-            showAlert(title: "Could Not Save Settings", message: error.localizedDescription)
+            showAlert(
+                title: L10n.string("alert.couldNotSave.title"),
+                message: error.localizedDescription
+            )
             settingsController?.update(config: config)
         }
 
@@ -230,22 +236,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch model.phase {
         case .idle:
-            let image = NSImage(systemSymbolName: "timer", accessibilityDescription: "DelayNoMore")
+            let image = NSImage(systemSymbolName: "timer", accessibilityDescription: L10n.string("tooltip.app"))
             image?.isTemplate = true
             button.image = image
-            button.toolTip = "DelayNoMore"
+            button.toolTip = L10n.string("tooltip.app")
             stateItem.image = Self.menuSymbol("timer")
 
         case .work(let remaining):
             let progress = CGFloat(remaining) / CGFloat(model.workSeconds)
             button.image = Self.makeRingImage(progress: progress)
-            button.toolTip = "Work — \(formatClock(remaining)) remaining"
+            button.toolTip = L10n.string("tooltip.work", formatClock(remaining))
             stateItem.image = Self.menuSymbol("timer")
 
         case .rest(let remaining):
             let progress = CGFloat(remaining) / CGFloat(model.breakSeconds)
             button.image = Self.makeRingImage(progress: progress)
-            button.toolTip = "Break — \(formatClock(remaining)) remaining"
+            button.toolTip = L10n.string("tooltip.break", formatClock(remaining))
             stateItem.image = Self.menuSymbol("pause.circle")
 
         case .paused(let previous):
@@ -256,7 +262,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             let progress = CGFloat(previous.remainingSeconds) / CGFloat(total)
             button.image = Self.makeRingImage(progress: progress)
-            button.toolTip = "Paused — \(formatClock(previous.remainingSeconds)) remaining"
+            button.toolTip = L10n.string("tooltip.paused", formatClock(previous.remainingSeconds))
             stateItem.image = Self.menuSymbol("pause.circle")
         }
 
@@ -277,19 +283,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch model.phase {
         case .idle:
-            startItem.title = "Start"
+            startItem.title = L10n.string("menu.start")
             startItem.action = #selector(start)
             startItem.image = Self.menuSymbol("play.fill")
         case .work:
-            startItem.title = "Pause"
+            startItem.title = L10n.string("menu.pause")
             startItem.action = #selector(pause)
             startItem.image = Self.menuSymbol("pause.fill")
         case .rest:
-            startItem.title = "End Break"
+            startItem.title = L10n.string("menu.endBreak")
             startItem.action = #selector(skipBreak)
             startItem.image = Self.menuSymbol("checkmark")
         case .paused:
-            startItem.title = "Resume"
+            startItem.title = L10n.string("menu.resume")
             startItem.action = #selector(start)
             startItem.image = Self.menuSymbol("play.fill")
         }
@@ -298,18 +304,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var stateTitle: String {
         switch model.phase {
         case .idle:
-            return "Idle"
+            return L10n.string("menu.idle")
         case .work(let remainingSeconds):
-            return "Working \(formatClock(remainingSeconds))"
+            return L10n.string("state.working", formatClock(remainingSeconds))
         case .rest(let remainingSeconds):
-            return "Break \(formatClock(remainingSeconds))"
+            return L10n.string("state.break", formatClock(remainingSeconds))
         case .paused(let previous):
-            switch previous {
-            case .work(let remainingSeconds):
-                return "Paused \(formatClock(remainingSeconds))"
-            case .rest(let remainingSeconds):
-                return "Paused \(formatClock(remainingSeconds))"
-            }
+            return L10n.string("state.paused", formatClock(previous.remainingSeconds))
         }
     }
 
@@ -349,7 +350,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: L10n.string("button.ok"))
         alert.runModal()
     }
 

@@ -1,0 +1,53 @@
+"menu.idle" = "Idle";
+"menu.start" = "Start";
+"menu.pause" = "Pause";
+"menu.stop" = "Stop";
+"menu.resume" = "Resume";
+"menu.endBreak" = "End Break";
+"menu.settings" = "Settings...";
+"menu.quit" = "Quit";
+
+"state.working" = "Working %@";
+"state.break" = "Break %@";
+"state.paused" = "Paused %@";
+
+"tooltip.app" = "DelayNoMore";
+"tooltip.work" = "Work — %@ remaining";
+"tooltip.break" = "Break — %@ remaining";
+"tooltip.paused" = "Paused — %@ remaining";
+
+"alert.chooseMedia.title" = "Choose Reminder Media";
+"alert.chooseMedia.message" = "DelayNoMore needs a valid image or video before it can show break reminders.";
+"alert.mediaCouldNotLoad.title" = "Reminder Media Could Not Be Loaded";
+"alert.mediaCouldNotLoad.message" = "Choose another image or video to continue.";
+"alert.unsupportedMedia.title" = "Unsupported Media";
+"alert.unsupportedMedia.message" = "Choose an image or video macOS can load.";
+"alert.couldNotSave.title" = "Could Not Save Settings";
+
+"panel.chooseMedia.title" = "Choose Reminder Media";
+"panel.chooseMedia.message" = "Choose an image or video to show during breaks.";
+
+"settings.title" = "Settings";
+"settings.section.media" = "Reminder Media";
+"settings.section.timer" = "Timer";
+"settings.media.custom" = "Custom...";
+"settings.media.none" = "None";
+"settings.timer.work" = "Work";
+"settings.timer.work.subtitle" = "Focus time before break";
+"settings.timer.break" = "Break";
+"settings.timer.break.subtitle" = "Rest duration";
+"settings.timer.unit" = "min";
+"settings.checking" = "Checking…";
+"settings.checkForUpdates" = "Check for Updates";
+"settings.done" = "Done";
+
+"button.ok" = "OK";
+"button.download" = "Download";
+"button.later" = "Later";
+
+"update.failed.title" = "Update Check Failed";
+"update.failed.message" = "Could not reach GitHub. Try again later.";
+"update.available.title" = "Update Available";
+"update.available.message" = "A new version (%1$@) is available. You are running %2$@.";
+"update.upToDate.title" = "You're Up to Date";
+"update.upToDate.message" = "DelayNoMore %@ is the latest version.";

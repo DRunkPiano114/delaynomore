@@ -1,0 +1,53 @@
+"menu.idle" = "空闲";
+"menu.start" = "开始";
+"menu.pause" = "暂停";
+"menu.stop" = "停止";
+"menu.resume" = "继续";
+"menu.endBreak" = "结束休息";
+"menu.settings" = "设置...";
+"menu.quit" = "退出";
+
+"state.working" = "工作中 %@";
+"state.break" = "休息中 %@";
+"state.paused" = "已暂停 %@";
+
+"tooltip.app" = "DelayNoMore";
+"tooltip.work" = "工作 — 剩余 %@";
+"tooltip.break" = "休息 — 剩余 %@";
+"tooltip.paused" = "已暂停 — 剩余 %@";
+
+"alert.chooseMedia.title" = "选择提醒媒体";
+"alert.chooseMedia.message" = "DelayNoMore 需要一张图片或一段视频才能显示休息提醒。";
+"alert.mediaCouldNotLoad.title" = "无法加载提醒媒体";
+"alert.mediaCouldNotLoad.message" = "请选择另一张图片或视频。";
+"alert.unsupportedMedia.title" = "不支持的媒体";
+"alert.unsupportedMedia.message" = "请选择 macOS 可识别的图片或视频。";
+"alert.couldNotSave.title" = "无法保存设置";
+
+"panel.chooseMedia.title" = "选择提醒媒体";
+"panel.chooseMedia.message" = "选择休息时显示的图片或视频。";
+
+"settings.title" = "设置";
+"settings.section.media" = "提醒媒体";
+"settings.section.timer" = "计时器";
+"settings.media.custom" = "自定义...";
+"settings.media.none" = "无";
+"settings.timer.work" = "工作";
+"settings.timer.work.subtitle" = "休息前的专注时长";
+"settings.timer.break" = "休息";
+"settings.timer.break.subtitle" = "休息时长";
+"settings.timer.unit" = "分钟";
+"settings.checking" = "检查中…";
+"settings.checkForUpdates" = "检查更新";
+"settings.done" = "完成";
+
+"button.ok" = "好";
+"button.download" = "下载";
+"button.later" = "稍后";
+
+"update.failed.title" = "检查更新失败";
+"update.failed.message" = "无法连接 GitHub，请稍后再试。";
+"update.available.title" = "有新版本";
+"update.available.message" = "新版本 (%1$@) 已发布，当前运行 %2$@。";
+"update.upToDate.title" = "已是最新";
+"update.upToDate.message" = "DelayNoMore %@ 已是最新版本。";

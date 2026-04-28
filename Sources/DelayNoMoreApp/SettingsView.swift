@@ -19,7 +19,7 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Settings")
+            Text("settings.title", bundle: .module)
                 .font(.system(size: 20, weight: .semibold))
 
             mediaSection
@@ -32,7 +32,7 @@ struct SettingsView: View {
 
     private var mediaSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Reminder Media", icon: "play.rectangle.fill")
+            sectionHeader(LocalizedStringKey("settings.section.media"), icon: "play.rectangle.fill")
 
             let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 3)
             LazyVGrid(columns: columns, spacing: 10) {
@@ -69,7 +69,7 @@ struct SettingsView: View {
         let isCustom = store.config.reminder?.kind == .customImage || store.config.reminder?.kind == .customVideo
 
         return MediaTile(
-            title: isCustom ? ReminderMediaLibrary.title(for: store.config.reminder) : "Custom...",
+            title: isCustom ? ReminderMediaLibrary.title(for: store.config.reminder) : L10n.string("settings.media.custom"),
             image: isCustom ? ReminderMediaLibrary.previewImage(for: store.config.reminder) : nil,
             videoURL: isCustom ? ReminderMediaLibrary.videoURL(for: store.config.reminder) : nil,
             isSelected: isCustom
@@ -80,12 +80,12 @@ struct SettingsView: View {
 
     private var durationsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Timer", icon: "clock.fill")
+            sectionHeader(LocalizedStringKey("settings.section.timer"), icon: "clock.fill")
 
             VStack(spacing: 0) {
                 durationRow(
-                    title: "Work",
-                    subtitle: "Focus time before break",
+                    title: LocalizedStringKey("settings.timer.work"),
+                    subtitle: LocalizedStringKey("settings.timer.work.subtitle"),
                     symbolName: "deskclock",
                     color: .blue,
                     value: Binding(
@@ -99,8 +99,8 @@ struct SettingsView: View {
                     .padding(.leading, 46)
 
                 durationRow(
-                    title: "Break",
-                    subtitle: "Rest duration",
+                    title: LocalizedStringKey("settings.timer.break"),
+                    subtitle: LocalizedStringKey("settings.timer.break.subtitle"),
                     symbolName: "cup.and.saucer",
                     color: .green,
                     value: Binding(
@@ -122,8 +122,8 @@ struct SettingsView: View {
     }
 
     private func durationRow(
-        title: String,
-        subtitle: String,
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
         symbolName: String,
         color: Color,
         value: Binding<Int>,
@@ -137,9 +137,9 @@ struct SettingsView: View {
                 .background(color.gradient, in: RoundedRectangle(cornerRadius: 7))
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(title)
+                Text(title, bundle: .module)
                     .font(.system(size: 13))
-                Text(subtitle)
+                Text(subtitle, bundle: .module)
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
@@ -153,7 +153,7 @@ struct SettingsView: View {
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13, design: .monospaced))
 
-                Text("min")
+                Text("settings.timer.unit", bundle: .module)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
 
@@ -173,8 +173,13 @@ struct SettingsView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.system(size: 10))
-                    Text(store.isCheckingForUpdates ? "Checking…" : "Check for Updates")
-                        .font(.system(size: 12))
+                    Text(
+                        store.isCheckingForUpdates
+                            ? LocalizedStringKey("settings.checking")
+                            : LocalizedStringKey("settings.checkForUpdates"),
+                        bundle: .module
+                    )
+                    .font(.system(size: 12))
                 }
             }
             .buttonStyle(.plain)
@@ -187,19 +192,20 @@ struct SettingsView: View {
 
             Spacer()
 
-            Button("Done") { onDismiss() }
-                .keyboardShortcut(.return)
-                .controlSize(.regular)
+            Button(action: onDismiss) {
+                Text("settings.done", bundle: .module)
+            }
+            .controlSize(.regular)
         }
         .padding(.top, 4)
     }
 
-    private func sectionHeader(_ title: String, icon: String) -> some View {
+    private func sectionHeader(_ title: LocalizedStringKey, icon: String) -> some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
-            Text(title)
+            Text(title, bundle: .module)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.secondary)
                 .textCase(.uppercase)
@@ -219,7 +225,8 @@ struct SettingsView: View {
 
     private func chooseMedia() {
         let panel = NSOpenPanel()
-        panel.title = "Choose Reminder Media"
+        panel.title = L10n.string("panel.chooseMedia.title")
+        panel.message = L10n.string("panel.chooseMedia.message")
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
@@ -275,28 +282,12 @@ struct MediaTile: View {
             .onHover { hovering in
                 isHovering = hovering
                 if hovering, let videoURL {
-                    let p = AVPlayer(url: videoURL)
-                    p.isMuted = true
-                    player = p
-                    p.play()
-
-                    loopObserver = NotificationCenter.default.addObserver(
-                        forName: .AVPlayerItemDidPlayToEndTime,
-                        object: p.currentItem,
-                        queue: .main
-                    ) { _ in
-                        p.seek(to: .zero)
-                        p.play()
-                    }
+                    startPreview(url: videoURL)
                 } else {
-                    player?.pause()
-                    if let obs = loopObserver {
-                        NotificationCenter.default.removeObserver(obs)
-                        loopObserver = nil
-                    }
-                    player = nil
+                    stopPreview()
                 }
             }
+            .onDisappear { stopPreview() }
 
             Text(title)
                 .font(.system(size: NSFont.smallSystemFontSize))
@@ -307,6 +298,31 @@ struct MediaTile: View {
         .contentShape(Rectangle())
         .onTapGesture { onClick() }
         .cursor(.pointingHand)
+    }
+
+    private func startPreview(url: URL) {
+        let p = AVPlayer(url: url)
+        p.isMuted = true
+        player = p
+        p.play()
+
+        loopObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: p.currentItem,
+            queue: .main
+        ) { _ in
+            p.seek(to: .zero)
+            p.play()
+        }
+    }
+
+    private func stopPreview() {
+        player?.pause()
+        if let obs = loopObserver {
+            NotificationCenter.default.removeObserver(obs)
+            loopObserver = nil
+        }
+        player = nil
     }
 }
 
