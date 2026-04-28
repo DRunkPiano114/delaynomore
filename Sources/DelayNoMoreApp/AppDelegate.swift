@@ -228,13 +228,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateMenu() {
-        stateItem.title = stateTitle
-        configurePrimaryAction()
-        stopItem.isHidden = shouldHideStopItem
+        let presentation = MenuPresentation(
+            phase: model.phase,
+            workSeconds: model.workSeconds,
+            breakSeconds: model.breakSeconds
+        )
+
+        stateItem.title = stateTitle(for: presentation.state)
+        configurePrimaryAction(for: presentation.primaryAction)
+        stopItem.isHidden = !presentation.stopVisible
 
         guard let button = statusItem.button else { return }
 
-        switch model.phase {
+        switch presentation.state {
         case .idle:
             let image = NSImage(systemSymbolName: "timer", accessibilityDescription: L10n.string("tooltip.app"))
             image?.isTemplate = true
@@ -242,75 +248,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.toolTip = L10n.string("tooltip.app")
             stateItem.image = Self.menuSymbol("timer")
 
-        case .work(let remaining):
-            let progress = CGFloat(remaining) / CGFloat(model.workSeconds)
-            button.image = Self.makeRingImage(progress: progress)
+        case .working(let remaining):
+            button.image = Self.makeRingImage(progress: CGFloat(presentation.progress))
             button.toolTip = L10n.string("tooltip.work", formatClock(remaining))
             stateItem.image = Self.menuSymbol("timer")
 
-        case .rest(let remaining):
-            let progress = CGFloat(remaining) / CGFloat(model.breakSeconds)
-            button.image = Self.makeRingImage(progress: progress)
+        case .onBreak(let remaining):
+            button.image = Self.makeRingImage(progress: CGFloat(presentation.progress))
             button.toolTip = L10n.string("tooltip.break", formatClock(remaining))
             stateItem.image = Self.menuSymbol("pause.circle")
 
-        case .paused(let previous):
-            let total: Int
-            switch previous {
-            case .work: total = model.workSeconds
-            case .rest: total = model.breakSeconds
-            }
-            let progress = CGFloat(previous.remainingSeconds) / CGFloat(total)
-            button.image = Self.makeRingImage(progress: progress)
-            button.toolTip = L10n.string("tooltip.paused", formatClock(previous.remainingSeconds))
+        case .paused(let remaining):
+            button.image = Self.makeRingImage(progress: CGFloat(presentation.progress))
+            button.toolTip = L10n.string("tooltip.paused", formatClock(remaining))
             stateItem.image = Self.menuSymbol("pause.circle")
         }
 
         button.setAccessibilityLabel(button.toolTip)
     }
 
-    private var shouldHideStopItem: Bool {
-        switch model.phase {
-        case .idle, .rest:
-            return true
-        case .work, .paused:
-            return false
-        }
-    }
-
-    private func configurePrimaryAction() {
+    private func configurePrimaryAction(for action: MenuPrimaryAction) {
         startItem.isEnabled = true
+        startItem.title = L10n.string(action.localizationKey)
+        startItem.image = Self.menuSymbol(action.symbolName)
 
-        switch model.phase {
-        case .idle:
-            startItem.title = L10n.string("menu.start")
+        switch action {
+        case .start, .resume:
             startItem.action = #selector(start)
-            startItem.image = Self.menuSymbol("play.fill")
-        case .work:
-            startItem.title = L10n.string("menu.pause")
+        case .pause:
             startItem.action = #selector(pause)
-            startItem.image = Self.menuSymbol("pause.fill")
-        case .rest:
-            startItem.title = L10n.string("menu.endBreak")
+        case .endBreak:
             startItem.action = #selector(skipBreak)
-            startItem.image = Self.menuSymbol("checkmark")
-        case .paused:
-            startItem.title = L10n.string("menu.resume")
-            startItem.action = #selector(start)
-            startItem.image = Self.menuSymbol("play.fill")
         }
     }
 
-    private var stateTitle: String {
-        switch model.phase {
+    private func stateTitle(for state: MenuStateKind) -> String {
+        switch state {
         case .idle:
             return L10n.string("menu.idle")
-        case .work(let remainingSeconds):
-            return L10n.string("state.working", formatClock(remainingSeconds))
-        case .rest(let remainingSeconds):
-            return L10n.string("state.break", formatClock(remainingSeconds))
-        case .paused(let previous):
-            return L10n.string("state.paused", formatClock(previous.remainingSeconds))
+        case .working(let remaining):
+            return L10n.string("state.working", formatClock(remaining))
+        case .onBreak(let remaining):
+            return L10n.string("state.break", formatClock(remaining))
+        case .paused(let remaining):
+            return L10n.string("state.paused", formatClock(remaining))
         }
     }
 
