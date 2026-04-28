@@ -134,9 +134,11 @@ final class ConfigStoreTests: XCTestCase {
 
     func testInvalidDurationsAreRejected() {
         XCTAssertThrowsError(try AppConfig.validateWorkSeconds(0))
-        XCTAssertThrowsError(try AppConfig.validateWorkSeconds(14_401))
+        XCTAssertNoThrow(try AppConfig.validateWorkSeconds(215_999))
+        XCTAssertThrowsError(try AppConfig.validateWorkSeconds(216_000))
         XCTAssertThrowsError(try AppConfig.validateBreakSeconds(0))
-        XCTAssertThrowsError(try AppConfig.validateBreakSeconds(3_601))
+        XCTAssertNoThrow(try AppConfig.validateBreakSeconds(215_999))
+        XCTAssertThrowsError(try AppConfig.validateBreakSeconds(216_000))
     }
 
     func testLoadFallsBackToDefaultWhenDurationsAreInvalid() throws {

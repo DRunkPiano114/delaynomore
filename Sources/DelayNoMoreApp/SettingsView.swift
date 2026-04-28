@@ -2,6 +2,14 @@ import SwiftUI
 import AVFoundation
 import DelayNoMoreCore
 
+private enum SettingsLayout {
+    static let windowWidth: CGFloat = 580
+    static let windowPadding: CGFloat = 22
+    static let columnSpacing: CGFloat = 18
+    static let mediaColumnWidth: CGFloat = 280
+    static let timerColumnWidth: CGFloat = 238
+}
+
 final class SettingsStore: ObservableObject {
     @Published var config: AppConfig
     @Published var isCheckingForUpdates = false
@@ -17,24 +25,43 @@ struct SettingsView: View {
     let onDismiss: () -> Void
     let onCheckForUpdates: () -> Void
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("settings.title", bundle: .module)
-                .font(.system(size: 20, weight: .semibold))
+    @FocusState private var focusedTimeField: FocusedTimeField?
 
-            mediaSection
-            durationsSection
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("settings.title", bundle: .module)
+                .font(.system(size: 22, weight: .semibold))
+                .contentShape(Rectangle())
+                .onTapGesture { clearTimeFocus() }
+
+            HStack(alignment: .top, spacing: SettingsLayout.columnSpacing) {
+                mediaSection
+                    .frame(width: SettingsLayout.mediaColumnWidth)
+                durationsSection
+                    .frame(width: SettingsLayout.timerColumnWidth)
+            }
+
             footerSection
         }
-        .padding(24)
-        .frame(width: 500)
+        .padding(SettingsLayout.windowPadding)
+        .frame(width: SettingsLayout.windowWidth)
+        .background {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { clearTimeFocus() }
+        }
+        .onAppear {
+            DispatchQueue.main.async {
+                clearTimeFocus()
+            }
+        }
     }
 
     private var mediaSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 13) {
             sectionHeader(LocalizedStringKey("settings.section.media"), icon: "play.rectangle.fill")
 
-            let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 3)
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 2)
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(availableBuiltIns, id: \.id) { builtIn in
                     builtInTile(builtIn)
@@ -60,6 +87,7 @@ struct SettingsView: View {
             videoURL: ReminderMediaLibrary.videoURL(for: media),
             isSelected: selected
         ) {
+            clearTimeFocus()
             store.config.reminder = .builtIn(id: builtIn.id)
             onChange(store.config)
         }
@@ -74,6 +102,7 @@ struct SettingsView: View {
             videoURL: isCustom ? ReminderMediaLibrary.videoURL(for: store.config.reminder) : nil,
             isSelected: isCustom
         ) {
+            clearTimeFocus()
             chooseMedia()
         }
     }
@@ -84,6 +113,7 @@ struct SettingsView: View {
 
             VStack(spacing: 10) {
                 DurationCard(
+                    kind: .work,
                     title: LocalizedStringKey("settings.timer.work"),
                     subtitle: LocalizedStringKey("settings.timer.work.subtitle"),
                     symbolName: "deskclock",
@@ -92,10 +122,12 @@ struct SettingsView: View {
                         get: { store.config.workSeconds },
                         set: { applyWorkSeconds($0) }
                     ),
-                    range: AppConfig.workSecondRange
+                    range: AppConfig.workSecondRange,
+                    focusedField: $focusedTimeField
                 )
 
                 DurationCard(
+                    kind: .break,
                     title: LocalizedStringKey("settings.timer.break"),
                     subtitle: LocalizedStringKey("settings.timer.break.subtitle"),
                     symbolName: "cup.and.saucer",
@@ -104,44 +136,39 @@ struct SettingsView: View {
                         get: { store.config.breakSeconds },
                         set: { applyBreakSeconds($0) }
                     ),
-                    range: AppConfig.breakSecondRange
+                    range: AppConfig.breakSecondRange,
+                    focusedField: $focusedTimeField
                 )
 
                 repeatToggleRow
             }
         }
-        .padding(.horizontal, 14)
     }
 
     private var repeatToggleRow: some View {
         HStack(spacing: 10) {
             Image(systemName: "repeat")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: 28, height: 28)
-                .background(Color.purple.gradient, in: RoundedRectangle(cornerRadius: 7))
+                .frame(width: 30, height: 30)
+                .background(Color.purple.gradient, in: RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("settings.timer.repeat", bundle: .module)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                 Text("settings.timer.repeat.subtitle", bundle: .module)
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
 
             Spacer()
 
-            Toggle(
-                "",
-                isOn: Binding(
-                    get: { store.config.repeats },
-                    set: { applyRepeats($0) }
-                )
-            )
-            .labelsHidden()
-            .controlSize(.small)
+            PillToggleButton(isOn: store.config.repeats) {
+                clearTimeFocus()
+                applyRepeats(!store.config.repeats)
+            }
         }
-        .padding(12)
+        .padding(13)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.controlBackgroundColor).opacity(0.7))
@@ -155,18 +182,19 @@ struct SettingsView: View {
     private var footerSection: some View {
         HStack(spacing: 8) {
             Button {
+                clearTimeFocus()
                 onCheckForUpdates()
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 10))
+                        .font(.system(size: 11))
                     Text(
                         store.isCheckingForUpdates
                             ? LocalizedStringKey("settings.checking")
                             : LocalizedStringKey("settings.checkForUpdates"),
                         bundle: .module
                     )
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                 }
             }
             .buttonStyle(.plain)
@@ -174,12 +202,15 @@ struct SettingsView: View {
             .disabled(store.isCheckingForUpdates)
 
             Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0")")
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundColor(Color(.quaternaryLabelColor))
 
             Spacer()
 
-            Button(action: onDismiss) {
+            Button {
+                clearTimeFocus()
+                onDismiss()
+            } label: {
                 Text("settings.done", bundle: .module)
             }
             .controlSize(.regular)
@@ -190,10 +221,10 @@ struct SettingsView: View {
     private func sectionHeader(_ title: LocalizedStringKey, icon: String) -> some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundColor(.secondary)
             Text(title, bundle: .module)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
                 .textCase(.uppercase)
                 .tracking(0.5)
@@ -215,6 +246,10 @@ struct SettingsView: View {
         onChange(store.config)
     }
 
+    private func clearTimeFocus() {
+        focusedTimeField = nil
+    }
+
     private func chooseMedia() {
         let panel = NSOpenPanel()
         panel.title = L10n.string("panel.chooseMedia.title")
@@ -232,32 +267,57 @@ struct SettingsView: View {
     }
 }
 
+private struct PillToggleButton: View {
+    let isOn: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: isOn ? .trailing : .leading) {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isOn ? Color.orange : Color(.tertiaryLabelColor).opacity(0.28))
+                    .frame(width: 56, height: 30)
+
+                Circle()
+                    .fill(Color(.controlBackgroundColor))
+                    .frame(width: 24, height: 24)
+                    .padding(3)
+                    .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
+            }
+            .frame(width: 56, height: 30)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("settings.timer.repeat", bundle: .module))
+        .accessibilityValue(isOn ? "On" : "Off")
+        .animation(.easeOut(duration: 0.16), value: isOn)
+    }
+}
+
 private enum TimeComponent: Hashable {
     case hour
     case minute
     case second
+}
 
-    var next: TimeComponent? {
-        switch self {
-        case .hour:
-            return .minute
-        case .minute:
-            return .second
-        case .second:
-            return nil
-        }
-    }
+private enum DurationKind: Hashable {
+    case work
+    case `break`
+}
+
+private struct FocusedTimeField: Hashable {
+    let kind: DurationKind
+    let component: TimeComponent
 }
 
 private struct DurationCard: View {
+    let kind: DurationKind
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey
     let symbolName: String
     let color: Color
     @Binding var seconds: Int
     let range: ClosedRange<Int>
-
-    @FocusState private var focusedComponent: TimeComponent?
+    let focusedField: FocusState<FocusedTimeField?>.Binding
 
     private var hours: Int { seconds / 3600 }
     private var minutes: Int { (seconds % 3600) / 60 }
@@ -265,26 +325,30 @@ private struct DurationCard: View {
     private var hourRange: ClosedRange<Int> { 0...(range.upperBound / 3600) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             timeEditor
                 .frame(maxWidth: .infinity, alignment: .center)
 
             HStack(spacing: 10) {
                 Image(systemName: symbolName)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.white)
-                    .frame(width: 28, height: 28)
-                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 7))
+                    .frame(width: 30, height: 30)
+                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 8))
 
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(title, bundle: .module)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))
                     Text(subtitle, bundle: .module)
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
 
                 Spacer()
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                focusedField.wrappedValue = nil
             }
         }
         .padding(14)
@@ -299,7 +363,7 @@ private struct DurationCard: View {
     }
 
     private var timeEditor: some View {
-        HStack(alignment: .bottom, spacing: 7) {
+        HStack(alignment: .bottom, spacing: 4) {
             segment(
                 component: .hour,
                 unit: LocalizedStringKey("settings.timer.hourUnit"),
@@ -329,10 +393,10 @@ private struct DurationCard: View {
 
     private var separator: some View {
         Text(":")
-            .font(.system(size: 42, weight: .light, design: .monospaced))
+            .font(.system(size: 40, weight: .light, design: .monospaced))
             .foregroundColor(Color(.secondaryLabelColor))
             .padding(.bottom, 1)
-            .frame(width: 10)
+            .frame(width: 8)
     }
 
     private func segment(
@@ -342,22 +406,20 @@ private struct DurationCard: View {
         range: ClosedRange<Int>,
         onCommit: @escaping (Int) -> Int
     ) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
             Text(unit, bundle: .module)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color(.secondaryLabelColor))
 
             TimeSegmentField(
-                component: component,
+                focus: FocusedTimeField(kind: kind, component: component),
                 value: value,
                 range: range,
-                focusedComponent: $focusedComponent,
+                focusedField: focusedField,
                 onCommit: onCommit
-            ) {
-                focusedComponent = component.next
-            }
+            )
         }
-        .frame(width: 70)
+        .frame(width: 56)
     }
 
     private func set(_ component: TimeComponent, to value: Int) -> Int {
@@ -380,11 +442,42 @@ private struct DurationCard: View {
             nextSeconds = clamp(value, to: 0...59)
         }
 
-        let nextTotal = nextHours * 3600 + nextMinutes * 60 + nextSeconds
-        let clampedTotal = clamp(nextTotal, to: range)
+        let clampedTotal = normalizedTotal(
+            editing: component,
+            hours: nextHours,
+            minutes: nextMinutes,
+            seconds: nextSeconds
+        )
         seconds = clampedTotal
 
         return componentValue(of: component, in: clampedTotal)
+    }
+
+    private func normalizedTotal(editing component: TimeComponent, hours: Int, minutes: Int, seconds: Int) -> Int {
+        let total = hours * 3600 + minutes * 60 + seconds
+
+        if range.contains(total) {
+            return total
+        }
+
+        if total < range.lowerBound {
+            return range.lowerBound
+        }
+
+        // Preserve the segment being edited when the total duration must be capped.
+        // Otherwise minute/second edits at the max hour appear to turn into 00.
+        switch component {
+        case .hour:
+            return range.upperBound
+        case .minute, .second:
+            let lowerComponents = minutes * 60 + seconds
+            guard lowerComponents <= range.upperBound else {
+                return range.upperBound
+            }
+
+            let adjustedHours = min(hours, (range.upperBound - lowerComponents) / 3600)
+            return max(range.lowerBound, adjustedHours * 3600 + lowerComponents)
+        }
     }
 
     private func componentValue(of component: TimeComponent, in totalSeconds: Int) -> Int {
@@ -404,33 +497,32 @@ private struct DurationCard: View {
 }
 
 private struct TimeSegmentField: View {
-    let component: TimeComponent
+    let focus: FocusedTimeField
     let value: Int
     let range: ClosedRange<Int>
-    let focusedComponent: FocusState<TimeComponent?>.Binding
+    let focusedField: FocusState<FocusedTimeField?>.Binding
     let onCommit: (Int) -> Int
-    let onAdvance: () -> Void
 
     @State private var draft = ""
 
     var body: some View {
         TextField("", text: $draft)
-            .font(.system(size: 44, weight: .light, design: .monospaced))
+            .font(.system(size: 40, weight: .light, design: .monospaced))
             .foregroundColor(Color(.labelColor))
             .multilineTextAlignment(.center)
             .textFieldStyle(.plain)
-            .frame(width: 70, height: 52)
-            .focused(focusedComponent, equals: component)
+            .frame(width: 56, height: 50)
+            .focused(focusedField, equals: focus)
             .onAppear {
                 draft = formatted(value)
             }
             .onChange(of: value) { newValue in
-                if focusedComponent.wrappedValue != component {
+                if focusedField.wrappedValue != focus {
                     draft = formatted(newValue)
                 }
             }
-            .onChange(of: focusedComponent.wrappedValue) { focused in
-                if focused == component {
+            .onChange(of: focusedField.wrappedValue) { focused in
+                if focused == focus {
                     draft = ""
                 } else {
                     commit()
@@ -441,12 +533,11 @@ private struct TimeSegmentField: View {
             }
             .onSubmit {
                 commit()
-                onAdvance()
             }
     }
 
     private func normalize(_ newValue: String) {
-        guard focusedComponent.wrappedValue == component else { return }
+        guard focusedField.wrappedValue == focus else { return }
 
         let sanitized = String(newValue.filter(\.isNumber).prefix(2))
         guard sanitized == newValue else {
@@ -454,11 +545,8 @@ private struct TimeSegmentField: View {
             return
         }
 
-        if sanitized.count == 2 {
-            commit()
-            DispatchQueue.main.async {
-                onAdvance()
-            }
+        if sanitized != draft {
+            draft = sanitized
         }
     }
 
@@ -525,7 +613,7 @@ struct MediaTile: View {
             .onDisappear { stopPreview() }
 
             Text(title)
-                .font(.system(size: NSFont.smallSystemFontSize))
+                .font(.system(size: 13))
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity)

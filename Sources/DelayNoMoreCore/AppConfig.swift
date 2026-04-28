@@ -40,17 +40,18 @@ public struct ReminderMedia: Codable, Equatable {
 public struct AppConfig: Codable, Equatable {
     public static let defaultWorkSeconds = 25 * 60
     public static let defaultBreakSeconds = 5 * 60
-    public static let workSecondRange = 1...(4 * 60 * 60)
-    public static let breakSecondRange = 1...(60 * 60)
+    public static let maximumDurationSeconds = (59 * 60 * 60) + (59 * 60) + 59
+    public static let workSecondRange = 1...maximumDurationSeconds
+    public static let breakSecondRange = 1...maximumDurationSeconds
 
     @available(*, deprecated, message: "Use defaultWorkSeconds instead.")
     public static let defaultWorkMinutes = defaultWorkSeconds / 60
     @available(*, deprecated, message: "Use defaultBreakSeconds instead.")
     public static let defaultBreakMinutes = defaultBreakSeconds / 60
     @available(*, deprecated, message: "Use workSecondRange instead.")
-    public static let workMinuteRange = 1...240
+    public static let workMinuteRange = 1...(maximumDurationSeconds / 60)
     @available(*, deprecated, message: "Use breakSecondRange instead.")
-    public static let breakMinuteRange = 1...60
+    public static let breakMinuteRange = 1...(maximumDurationSeconds / 60)
 
     public static let `default` = AppConfig(
         reminder: .builtIn(id: "cozy-cat-house"),
@@ -208,9 +209,9 @@ public enum DurationValidationError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .workOutOfRange:
-            return "Work duration must be between 1 second and 4 hours."
+            return "Work duration must be between 1 second and 59:59:59."
         case .breakOutOfRange:
-            return "Break duration must be between 1 second and 1 hour."
+            return "Break duration must be between 1 second and 59:59:59."
         }
     }
 }
