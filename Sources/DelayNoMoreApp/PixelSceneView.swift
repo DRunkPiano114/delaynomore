@@ -137,14 +137,14 @@ final class PixelSceneView: NSView {
         layer?.backgroundColor = NSColor.clear.cgColor
 
         blurView.blendingMode = .behindWindow
-        blurView.material = .popover
+        blurView.material = .fullScreenUI
         blurView.state = .active
         blurView.appearance = NSAppearance(named: .darkAqua)
         blurView.autoresizingMask = [.width, .height]
         addSubview(blurView)
 
         dimView.wantsLayer = true
-        dimView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.30).cgColor
+        dimView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.12).cgColor
         dimView.autoresizingMask = [.width, .height]
         addSubview(dimView)
 
@@ -222,8 +222,8 @@ final class PixelSceneView: NSView {
     }
 
     private func configureLabels() {
-        topTextLabel.font = NSFont(name: "Toriko", size: 24)
-            ?? .systemFont(ofSize: 24, weight: .semibold)
+        topTextLabel.font = NSFont(name: "Toriko", size: 36)
+            ?? .systemFont(ofSize: 36, weight: .semibold)
         topTextLabel.textColor = NSColor.white.withAlphaComponent(0.88)
         topTextLabel.alignment = .center
         topTextLabel.maximumNumberOfLines = 2
