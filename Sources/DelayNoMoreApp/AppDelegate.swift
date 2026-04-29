@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.registerBundledFonts()
         config = store.load()
         model = TimerModel(config: config)
         reminderController = ReminderWindowController()
@@ -342,5 +343,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
         image?.isTemplate = true
         return image
+    }
+
+    private static func registerBundledFonts() {
+        guard let url = Bundle.module.url(forResource: "Toriko", withExtension: "ttf") else {
+            return
+        }
+        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
     }
 }
