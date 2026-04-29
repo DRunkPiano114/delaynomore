@@ -44,6 +44,9 @@
 "pixel.scene.intro.nightCamp" = "The night is yours. Mochi is here.";
 "pixel.scene.intro.morningBalcony" = "Morning. The world is waking up.";
 "pixel.scene.intro.rainyWindow" = "Listen to the rain. Mochi is here.";
+"pixel.scene.intro.cozyJapaneseRoom" = "A quiet room. Tea and time.";
+"pixel.scene.intro.morningHome" = "Home, warm and slow.";
+"pixel.scene.intro.rainyCafe" = "Ice cream weather. No rush.";
 "settings.timer.work" = "Work";
 "settings.timer.work.subtitle" = "Focus time before break";
 "settings.timer.break" = "Break";

@@ -87,6 +87,7 @@ final class PixelSceneView: NSView {
     private let stageView = NSView()
     private let stageGradientLayer = CAGradientLayer()
     private let groundLayer = CAGradientLayer()
+    private let backdropView = PixelImageView()
 
     private let template: SceneTemplate
     private let descriptor: SceneDescriptor
@@ -170,15 +171,20 @@ final class PixelSceneView: NSView {
         groundLayer.endPoint = CGPoint(x: 0.5, y: 1)
         stageView.layer?.addSublayer(groundLayer)
 
+        configureBackdrop()
         configureCast()
         configureEmote()
         configureLabels()
-        configureAtmosphere()
 
+        if descriptor.backdrop != nil {
+            stageView.addSubview(backdropView)
+        }
         castViews.forEach { stageView.addSubview($0) }
         if mochiView != nil {
             stageView.addSubview(emoteImageView)
         }
+
+        configureAtmosphere()
         butterflyImageViews.forEach { stageView.addSubview($0) }
 
         addSubview(topTextLabel)
@@ -187,6 +193,16 @@ final class PixelSceneView: NSView {
         if mochiView != nil {
             startEmoteCycle()
         }
+    }
+
+    private func configureBackdrop() {
+        guard let backdrop = descriptor.backdrop,
+              let url = Bundle.module.url(forResource: backdrop.imageName, withExtension: "png"),
+              let img = NSImage(contentsOf: url) else { return }
+        backdropView.image = img
+        backdropView.imageScaling = .scaleAxesIndependently
+        stageGradientLayer.isHidden = true
+        groundLayer.isHidden = true
     }
 
     private func configureCast() {
@@ -222,15 +238,15 @@ final class PixelSceneView: NSView {
     }
 
     private func configureLabels() {
-        topTextLabel.font = NSFont(name: "Toriko", size: 36)
-            ?? .systemFont(ofSize: 36, weight: .semibold)
+        topTextLabel.font = NSFont(name: "Toriko", size: 56)
+            ?? .systemFont(ofSize: 56, weight: .semibold)
         topTextLabel.textColor = NSColor.white.withAlphaComponent(0.88)
         topTextLabel.alignment = .center
         topTextLabel.maximumNumberOfLines = 2
         topTextLabel.lineBreakMode = .byWordWrapping
 
-        countdownLabel.font = NSFont(name: "Toriko", size: 42)
-            ?? .monospacedDigitSystemFont(ofSize: 42, weight: .medium)
+        countdownLabel.font = NSFont(name: "Toriko", size: 72)
+            ?? .monospacedDigitSystemFont(ofSize: 72, weight: .medium)
         countdownLabel.textColor = NSColor.white.withAlphaComponent(0.7)
         countdownLabel.alignment = .center
     }
@@ -353,23 +369,40 @@ final class PixelSceneView: NSView {
         let stageBounds = CGRect(origin: .zero, size: stageFrame.size)
         stageGradientLayer.frame = stageBounds
 
-        let s = Self.pickStageScale(stageHeight: stageH)
-        let groundY = max(stageBounds.height * 0.38, 64)
-        let spriteFootBuffer = max(s * 1.5, 6)
+        let contentRect: CGRect
+        let s: CGFloat
+        if let backdrop = descriptor.backdrop {
+            let nativeW = backdrop.nativePixelSize.width
+            let nativeH = backdrop.nativePixelSize.height
+            let fitScale = min(stageBounds.width / nativeW, stageBounds.height / nativeH)
+            let renderedW = floor(nativeW * fitScale)
+            let renderedH = floor(nativeH * fitScale)
+            let originX = floor((stageBounds.width - renderedW) / 2)
+            let originY = floor((stageBounds.height - renderedH) / 2)
+            contentRect = CGRect(x: originX, y: originY, width: renderedW, height: renderedH)
+            backdropView.frame = contentRect
+            s = max(1.0, round(fitScale))
+        } else {
+            contentRect = stageBounds
+            s = Self.pickStageScale(stageHeight: stageH)
+        }
+
+        let groundY = descriptor.backdrop != nil ? 0 : max(stageBounds.height * 0.38, 64)
+        let spriteFootBuffer = descriptor.backdrop != nil ? 0 : max(s * 1.5, 6)
 
         groundLayer.frame = CGRect(x: 0, y: 0, width: stageBounds.width, height: groundY)
 
         for (i, spec) in descriptor.cast.enumerated() where i < castViews.count {
             let view = castViews[i]
             let size = CGSize(width: spec.pixelSize.width * s, height: spec.pixelSize.height * s)
-            let centerX = floor(stageBounds.width * spec.anchorX)
+            let centerX = floor(contentRect.minX + contentRect.width * spec.anchorX)
             let originX = floor(centerX - size.width / 2)
             let originY: CGFloat
             switch spec.anchorY {
             case .ground:
-                originY = floor(groundY + spriteFootBuffer)
+                originY = floor(contentRect.minY + groundY + spriteFootBuffer)
             case .floating(let yRatio):
-                originY = floor(stageBounds.height * yRatio - size.height / 2)
+                originY = floor(contentRect.minY + contentRect.height * yRatio - size.height / 2)
             }
             view.frame = CGRect(x: originX, y: originY, width: size.width, height: size.height)
         }
@@ -386,16 +419,16 @@ final class PixelSceneView: NSView {
 
         topTextLabel.frame = CGRect(
             x: 56,
-            y: min(stageFrame.maxY + 26, bounds.height - 88),
+            y: min(stageFrame.maxY + 30, bounds.height - 110),
             width: max(0, bounds.width - 112),
-            height: 60
+            height: 84
         )
 
         countdownLabel.frame = CGRect(
             x: 0,
-            y: max(28, stageFrame.minY - 70),
+            y: max(32, stageFrame.minY - 110),
             width: bounds.width,
-            height: 52
+            height: 96
         )
 
         layoutAtmosphere(stageBounds: stageBounds, groundY: groundY, scale: s)
