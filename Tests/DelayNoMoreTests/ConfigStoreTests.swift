@@ -94,6 +94,11 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertFalse(AppConfig.default.repeats)
     }
 
+    func testDefaultConfigUsesFiftyTenDurations() {
+        XCTAssertEqual(AppConfig.default.workSeconds, 50 * 60)
+        XCTAssertEqual(AppConfig.default.breakSeconds, 10 * 60)
+    }
+
     func testLoadDefaultsToBuiltInReminderWhenReminderIsMissing() throws {
         let directory = temporaryDirectory()
         let store = ConfigStore(directoryURL: directory)

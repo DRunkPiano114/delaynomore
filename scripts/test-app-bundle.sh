@@ -24,8 +24,8 @@ check "$APP_DIR/Contents/MacOS/DelayNoMore"
 check "$APP_DIR/Contents/Resources/AppIcon.icns"
 check "$APP_DIR/Contents/Info.plist"
 
-for bundle in "$APP_DIR/"*.bundle; do
-  [ -e "$bundle" ] || { echo "FAIL: no resource bundle at app root"; failed=1; continue; }
+for bundle in "$APP_DIR/Contents/Resources/"*.bundle; do
+  [ -e "$bundle" ] || { echo "FAIL: no resource bundle in Contents/Resources"; failed=1; continue; }
   echo "OK:   $bundle"
 
   mp4_count=$(find "$bundle" -name "*.mp4" | wc -l | tr -d ' ')

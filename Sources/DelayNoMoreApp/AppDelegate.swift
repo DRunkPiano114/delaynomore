@@ -126,7 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func endBreakEarly() {
         if model.skipRest() == .finishedRest {
-            reminderController?.dismiss(animated: true)
+            reminderController?.dismiss(animated: true, fast: true)
         }
         updateMenu()
     }

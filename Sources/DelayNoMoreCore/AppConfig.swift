@@ -38,8 +38,8 @@ public struct ReminderMedia: Codable, Equatable {
 }
 
 public struct AppConfig: Codable, Equatable {
-    public static let defaultWorkSeconds = 25 * 60
-    public static let defaultBreakSeconds = 5 * 60
+    public static let defaultWorkSeconds = 50 * 60
+    public static let defaultBreakSeconds = 10 * 60
     public static let maximumDurationSeconds = (59 * 60 * 60) + (59 * 60) + 59
     public static let workSecondRange = 1...maximumDurationSeconds
     public static let breakSecondRange = 1...maximumDurationSeconds

@@ -16,6 +16,13 @@
 "tooltip.break" = "Break — %@ remaining";
 "tooltip.paused" = "Paused — %@ remaining";
 
+"break.intro.format" = "Break starts now. %@";
+"break.prompt.lookAway" = "Look away from the screen.";
+"break.prompt.shoulders" = "Relax your shoulders.";
+"break.prompt.breathe" = "Take one slow breath.";
+"break.prompt.stand" = "Stand up for a moment.";
+"break.prompt.water" = "Take a sip of water.";
+
 "alert.chooseMedia.title" = "Choose Reminder Media";
 "alert.chooseMedia.message" = "DelayNoMore needs a valid image or video before it can show break reminders.";
 "alert.mediaCouldNotLoad.title" = "Reminder Media Could Not Be Loaded";

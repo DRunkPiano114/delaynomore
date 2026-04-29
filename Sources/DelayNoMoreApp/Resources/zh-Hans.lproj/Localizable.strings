@@ -16,6 +16,13 @@
 "tooltip.break" = "休息 — 剩余 %@";
 "tooltip.paused" = "已暂停 — 剩余 %@";
 
+"break.intro.format" = "休息开始。%@";
+"break.prompt.lookAway" = "看向屏幕外。";
+"break.prompt.shoulders" = "放松肩膀。";
+"break.prompt.breathe" = "慢慢呼吸一次。";
+"break.prompt.stand" = "站起来一小会儿。";
+"break.prompt.water" = "喝一口水。";
+
 "alert.chooseMedia.title" = "选择提醒媒体";
 "alert.chooseMedia.message" = "DelayNoMore 需要一张图片或一段视频才能显示休息提醒。";
 "alert.mediaCouldNotLoad.title" = "无法加载提醒媒体";
