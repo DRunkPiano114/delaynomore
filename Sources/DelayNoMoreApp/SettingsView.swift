@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import AppKit
 import DelayNoMoreCore
 
 private enum SettingsLayout {
@@ -8,6 +9,78 @@ private enum SettingsLayout {
     static let columnSpacing: CGFloat = 18
     static let mediaColumnWidth: CGFloat = 280
     static let timerColumnWidth: CGFloat = 238
+    static let bannerHeight: CGFloat = 96
+}
+
+enum CozyPalette {
+    static let paper = Color(red: 0.957, green: 0.933, blue: 0.867)        // #F4EEDD warm cream
+    static let paperLight = Color(red: 0.984, green: 0.969, blue: 0.918)   // #FBF7EA card cream
+    static let paperDeep = Color(red: 0.910, green: 0.870, blue: 0.770)    // #E8DEC4 deeper cream
+    static let bannerSky = Color(red: 0.910, green: 0.870, blue: 0.745)    // #E8DEBE banner top
+    static let ink = Color(red: 0.239, green: 0.180, blue: 0.122)          // #3D2E1F warm dark
+    static let inkSoft = Color(red: 0.478, green: 0.408, blue: 0.314)      // #7A6850 muted brown
+    static let tan = Color(red: 0.851, green: 0.788, blue: 0.659)          // #D9C9A8 warm tan
+    static let amber = Color(red: 0.851, green: 0.647, blue: 0.361)        // #D9A55C accent amber
+    static let amberSoft = Color(red: 0.957, green: 0.847, blue: 0.604)    // #F4D89A soft amber
+
+    static var paperNS: NSColor { NSColor(paper) }
+}
+
+private struct PixelGIFView: NSViewRepresentable {
+    let resource: String
+    let ext: String
+
+    func makeNSView(context: Context) -> NSImageView {
+        let view = NSImageView()
+        view.imageScaling = .scaleAxesIndependently
+        view.animates = true
+        view.wantsLayer = true
+        if let url = Bundle.module.url(forResource: resource, withExtension: ext),
+           let img = NSImage(contentsOf: url) {
+            view.image = img
+        }
+        return view
+    }
+
+    func updateNSView(_ view: NSImageView, context: Context) {
+        view.layer?.magnificationFilter = .nearest
+        view.layer?.minificationFilter = .nearest
+    }
+}
+
+private struct DioramaBanner: View {
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            LinearGradient(
+                colors: [CozyPalette.bannerSky, CozyPalette.paperDeep],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            Rectangle()
+                .fill(CozyPalette.tan.opacity(0.55))
+                .frame(height: 2)
+                .padding(.bottom, 14)
+
+            HStack(alignment: .bottom, spacing: 28) {
+                Spacer().frame(width: 36)
+
+                PixelGIFView(resource: "prop-candle", ext: "gif")
+                    .frame(width: 56, height: 56)
+                    .padding(.bottom, 16)
+
+                Spacer()
+
+                PixelGIFView(resource: "cast-mochi", ext: "gif")
+                    .frame(width: 168, height: 56)
+                    .padding(.bottom, 16)
+
+                Spacer().frame(width: 56)
+            }
+        }
+        .frame(height: SettingsLayout.bannerHeight)
+        .clipped()
+    }
 }
 
 final class SettingsStore: ObservableObject {
@@ -28,33 +101,56 @@ struct SettingsView: View {
     @FocusState private var focusedTimeField: FocusedTimeField?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("settings.title", bundle: .module)
-                .font(.system(size: 22, weight: .semibold))
+        VStack(alignment: .leading, spacing: 0) {
+            DioramaBanner()
                 .contentShape(Rectangle())
                 .onTapGesture { clearTimeFocus() }
 
-            HStack(alignment: .top, spacing: SettingsLayout.columnSpacing) {
-                mediaSection
-                    .frame(width: SettingsLayout.mediaColumnWidth)
-                durationsSection
-                    .frame(width: SettingsLayout.timerColumnWidth)
+            VStack(alignment: .leading, spacing: 18) {
+                Text("settings.title", bundle: .module)
+                    .font(torikoFont(size: 40))
+                    .foregroundColor(CozyPalette.ink)
+                    .contentShape(Rectangle())
+                    .onTapGesture { clearTimeFocus() }
+
+                HStack(alignment: .top, spacing: SettingsLayout.columnSpacing) {
+                    mediaSection
+                        .frame(width: SettingsLayout.mediaColumnWidth)
+                    durationsSection
+                        .frame(width: SettingsLayout.timerColumnWidth)
+                }
+
+                footerSection
             }
-
-            footerSection
+            .padding(.horizontal, SettingsLayout.windowPadding)
+            .padding(.top, 18)
+            .padding(.bottom, SettingsLayout.windowPadding)
         }
-        .padding(SettingsLayout.windowPadding)
         .frame(width: SettingsLayout.windowWidth)
-        .background {
-            Color.clear
+        .background(
+            CozyPalette.paper
                 .contentShape(Rectangle())
                 .onTapGesture { clearTimeFocus() }
-        }
+        )
         .onAppear {
             DispatchQueue.main.async {
                 clearTimeFocus()
             }
         }
+    }
+
+    private func torikoFont(size: CGFloat) -> Font {
+        if let ns = NSFont(name: "Toriko", size: size) {
+            return Font(ns as CTFont)
+        }
+        return .system(size: size, weight: .semibold)
+    }
+
+    // Toriko's glyphs sit in the upper half of the line box (yMin=0 at baseline,
+    // ascender=48, no descender). Shift rendered text down by half the glyph
+    // height so the visible mass center lands at the layout frame's center.
+    private func torikoCenterOffset(forSize size: CGFloat) -> CGFloat {
+        size * 24.0 / 128.0
     }
 
     private var mediaSection: some View {
@@ -116,8 +212,8 @@ struct SettingsView: View {
                     kind: .work,
                     title: LocalizedStringKey("settings.timer.work"),
                     subtitle: LocalizedStringKey("settings.timer.work.subtitle"),
-                    symbolName: "deskclock",
-                    color: .blue,
+                    symbolName: "hourglass",
+                    color: CozyPalette.amber,
                     seconds: Binding(
                         get: { store.config.workSeconds },
                         set: { applyWorkSeconds($0) }
@@ -130,8 +226,8 @@ struct SettingsView: View {
                     kind: .break,
                     title: LocalizedStringKey("settings.timer.break"),
                     subtitle: LocalizedStringKey("settings.timer.break.subtitle"),
-                    symbolName: "cup.and.saucer",
-                    color: .green,
+                    symbolName: "cup.and.saucer.fill",
+                    color: CozyPalette.amber,
                     seconds: Binding(
                         get: { store.config.breakSeconds },
                         set: { applyBreakSeconds($0) }
@@ -151,14 +247,15 @@ struct SettingsView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(width: 30, height: 30)
-                .background(Color.purple.gradient, in: RoundedRectangle(cornerRadius: 8))
+                .background(CozyPalette.amber, in: RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("settings.timer.repeat", bundle: .module)
                     .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(CozyPalette.ink)
                 Text("settings.timer.repeat.subtitle", bundle: .module)
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(CozyPalette.inkSoft)
             }
 
             Spacer()
@@ -171,12 +268,14 @@ struct SettingsView: View {
         .padding(13)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.controlBackgroundColor).opacity(0.7))
+                .fill(CozyPalette.paperLight)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(Color(.separatorColor).opacity(0.55), lineWidth: 0.5)
+                .strokeBorder(CozyPalette.tan, lineWidth: 1)
         )
+        .contentShape(Rectangle())
+        .onTapGesture { clearTimeFocus() }
     }
 
     private var footerSection: some View {
@@ -198,12 +297,12 @@ struct SettingsView: View {
                 }
             }
             .buttonStyle(.plain)
-            .foregroundColor(.secondary)
+            .foregroundColor(CozyPalette.inkSoft)
             .disabled(store.isCheckingForUpdates)
 
             Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0")")
                 .font(.system(size: 12))
-                .foregroundColor(Color(.quaternaryLabelColor))
+                .foregroundColor(CozyPalette.inkSoft.opacity(0.65))
 
             Spacer()
 
@@ -212,23 +311,35 @@ struct SettingsView: View {
                 onDismiss()
             } label: {
                 Text("settings.done", bundle: .module)
+                    .font(torikoFont(size: 26))
+                    .foregroundColor(.white)
+                    .offset(y: torikoCenterOffset(forSize: 26))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(CozyPalette.amber)
+                    )
             }
-            .controlSize(.regular)
+            .buttonStyle(.plain)
+            .keyboardShortcut(.defaultAction)
         }
         .padding(.top, 4)
     }
 
     private func sectionHeader(_ title: LocalizedStringKey, icon: String) -> some View {
-        HStack(spacing: 5) {
+        HStack(alignment: .center, spacing: 11) {
             Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .font(.system(size: 22, weight: .medium))
+                .foregroundColor(CozyPalette.amber)
+                .frame(width: 32, height: 32, alignment: .center)
             Text(title, bundle: .module)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-                .tracking(0.5)
+                .font(torikoFont(size: 28))
+                .foregroundColor(CozyPalette.inkSoft)
+                .offset(y: torikoCenterOffset(forSize: 28))
         }
+        .contentShape(Rectangle())
+        .onTapGesture { clearTimeFocus() }
     }
 
     private func applyWorkSeconds(_ seconds: Int) {
@@ -275,14 +386,14 @@ private struct PillToggleButton: View {
         Button(action: action) {
             ZStack(alignment: isOn ? .trailing : .leading) {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isOn ? Color.orange : Color(.tertiaryLabelColor).opacity(0.28))
+                    .fill(isOn ? CozyPalette.amber : CozyPalette.paperDeep)
                     .frame(width: 56, height: 30)
 
                 Circle()
-                    .fill(Color(.controlBackgroundColor))
+                    .fill(CozyPalette.paperLight)
                     .frame(width: 24, height: 24)
                     .padding(3)
-                    .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
+                    .shadow(color: CozyPalette.ink.opacity(0.18), radius: 2, y: 1)
             }
             .frame(width: 56, height: 30)
         }
@@ -334,32 +445,33 @@ private struct DurationCard: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(width: 30, height: 30)
-                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 8))
+                    .background(color, in: RoundedRectangle(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title, bundle: .module)
                         .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(CozyPalette.ink)
                     Text(subtitle, bundle: .module)
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(CozyPalette.inkSoft)
                 }
 
                 Spacer()
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                focusedField.wrappedValue = nil
             }
         }
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.controlBackgroundColor).opacity(0.82))
+                .fill(CozyPalette.paperLight)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(Color(.separatorColor).opacity(0.65), lineWidth: 0.5)
+                .strokeBorder(CozyPalette.tan, lineWidth: 1)
         )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            focusedField.wrappedValue = nil
+        }
     }
 
     private var timeEditor: some View {
@@ -394,7 +506,7 @@ private struct DurationCard: View {
     private var separator: some View {
         Text(":")
             .font(.system(size: 40, weight: .light, design: .monospaced))
-            .foregroundColor(Color(.secondaryLabelColor))
+            .foregroundColor(CozyPalette.inkSoft)
             .padding(.bottom, 1)
             .frame(width: 8)
     }
@@ -409,7 +521,7 @@ private struct DurationCard: View {
         VStack(spacing: 5) {
             Text(unit, bundle: .module)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(Color(.secondaryLabelColor))
+                .foregroundColor(CozyPalette.inkSoft)
 
             TimeSegmentField(
                 focus: FocusedTimeField(kind: kind, component: component),
@@ -505,13 +617,22 @@ private struct TimeSegmentField: View {
 
     @State private var draft = ""
 
+    private var isFocused: Bool {
+        focusedField.wrappedValue == focus
+    }
+
     var body: some View {
         TextField("", text: $draft)
             .font(.system(size: 40, weight: .light, design: .monospaced))
-            .foregroundColor(Color(.labelColor))
+            .foregroundColor(isFocused ? .white : CozyPalette.ink)
             .multilineTextAlignment(.center)
             .textFieldStyle(.plain)
             .frame(width: 56, height: 50)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isFocused ? CozyPalette.amber : Color.clear)
+            )
+            .animation(.easeOut(duration: 0.12), value: isFocused)
             .focused(focusedField, equals: focus)
             .onAppear {
                 draft = formatted(value)
@@ -582,10 +703,10 @@ struct MediaTile: View {
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                 } else {
-                    Color(.controlBackgroundColor)
+                    CozyPalette.paperDeep
                     Image(systemName: "photo.badge.plus")
                         .font(.system(size: 16))
-                        .foregroundColor(Color(.tertiaryLabelColor))
+                        .foregroundColor(CozyPalette.inkSoft)
                 }
 
                 if isHovering, player != nil {
@@ -598,7 +719,7 @@ struct MediaTile: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .strokeBorder(
-                        isSelected ? Color.accentColor : Color(.separatorColor).opacity(0.5),
+                        isSelected ? CozyPalette.amber : CozyPalette.tan,
                         lineWidth: isSelected ? 2.5 : 1
                     )
             )
@@ -614,6 +735,7 @@ struct MediaTile: View {
 
             Text(title)
                 .font(.system(size: 13))
+                .foregroundColor(isSelected ? CozyPalette.ink : CozyPalette.inkSoft)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity)
@@ -672,11 +794,11 @@ private extension View {
     func sectionStyle() -> some View {
         self
             .padding(14)
-            .background(Color(.controlBackgroundColor).opacity(0.5))
+            .background(CozyPalette.paperLight)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color(.separatorColor).opacity(0.5), lineWidth: 0.5)
+                    .strokeBorder(CozyPalette.tan, lineWidth: 1)
             )
     }
 

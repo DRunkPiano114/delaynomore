@@ -22,6 +22,8 @@ final class SettingsWindowController: NSWindowController {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
+        window.backgroundColor = CozyPalette.paperNS
+        window.appearance = NSAppearance(named: .aqua)
 
         super.init(window: window)
 
