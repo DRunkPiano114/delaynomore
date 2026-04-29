@@ -19,16 +19,70 @@ jobs:
       - name: Run tests
         run: swift test
 
-      - name: Build app
+      - name: Import certificate to keychain
+        env:
+          DEVELOPER_ID_CERT_P12: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
+          DEVELOPER_ID_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/cert.p12"
+
+          echo -n "$DEVELOPER_ID_CERT_P12" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import "$CERT_PATH" \
+            -P "$DEVELOPER_ID_CERT_PASSWORD" \
+            -A -t cert -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_PATH"
+
+          security list-keychain -d user -s "$KEYCHAIN_PATH" \
+            $(security list-keychains -d user | tr -d '"')
+
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+          rm "$CERT_PATH"
+
+      - name: Build and sign app
+        env:
+          SIGNING_IDENTITY: "Developer ID Application: Lingwei Wu (${{ secrets.APPLE_TEAM_ID }})"
         run: |
           APP_VERSION="${GITHUB_REF_NAME#v}"
           export APP_VERSION
           bash scripts/build-app.sh
 
+      - name: Notarize and staple
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd .build/app
+          ditto -c -k --keepParent DelayNoMore.app DelayNoMore-notarize.zip
+
+          xcrun notarytool submit DelayNoMore-notarize.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          xcrun stapler staple DelayNoMore.app
+          spctl -a -t exec -vv DelayNoMore.app
+
+          rm DelayNoMore-notarize.zip
+
       - name: Package zip
         run: |
           cd .build/app
-          zip -r "$GITHUB_WORKSPACE/DelayNoMore.zip" DelayNoMore.app
+          ditto -c -k --keepParent DelayNoMore.app "$GITHUB_WORKSPACE/DelayNoMore.zip"
 
       - name: Generate release notes
         run: |
@@ -79,11 +133,6 @@ jobs:
 
             echo "## Install"
             echo "Download \`DelayNoMore.zip\`, unzip, and drag to Applications."
-            echo ""
-            echo "First launch on macOS 15+:"
-            echo "\`\`\`"
-            echo "xattr -d com.apple.quarantine /Applications/DelayNoMore.app"
-            echo "\`\`\`"
             echo ""
             echo "## Verify (SHA256)"
             echo "\`\`\`"
