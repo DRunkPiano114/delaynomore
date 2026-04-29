@@ -6,12 +6,14 @@ import UniformTypeIdentifiers
 enum ReminderMediaAsset {
     case image(NSImage)
     case video(URL)
+    case pixelScene
 }
 
 struct BuiltInReminderMedia {
     enum MediaKind {
         case image
         case video
+        case pixelScene
     }
 
     let id: String
@@ -25,6 +27,13 @@ enum ReminderMediaLibrary {
     static let allowedContentTypes: [UTType] = [.image, .movie, .video]
 
     static let builtIns: [BuiltInReminderMedia] = [
+        BuiltInReminderMedia(
+            id: "pixel-diorama",
+            title: L10n.string("settings.media.pixel"),
+            resourceName: "",
+            resourceExtension: "",
+            kind: .pixelScene
+        ),
         BuiltInReminderMedia(
             id: "lucky-cat",
             title: "Lucky Cat",
@@ -128,6 +137,7 @@ enum ReminderMediaLibrary {
         switch asset {
         case .image(let img): image = img
         case .video(let url): image = videoThumbnail(url: url)
+        case .pixelScene: image = PixelSceneAssets.previewThumbnail()
         }
 
         if let image { previewCache[key] = image }
@@ -149,22 +159,31 @@ enum ReminderMediaLibrary {
     }
 
     private static func builtInAsset(id: String) -> ReminderMediaAsset? {
-        guard let builtIn = builtIns.first(where: { $0.id == id }),
-              let url = Bundle.module.url(
-                  forResource: builtIn.resourceName,
-                  withExtension: builtIn.resourceExtension
-              ) else {
+        guard let builtIn = builtIns.first(where: { $0.id == id }) else {
             return nil
         }
 
         switch builtIn.kind {
+        case .pixelScene:
+            return PixelSceneAssets.areAvailable ? .pixelScene : nil
         case .image:
-            guard let image = NSImage(contentsOf: url) else {
+            guard let url = Bundle.module.url(
+                forResource: builtIn.resourceName,
+                withExtension: builtIn.resourceExtension
+            ),
+            let image = NSImage(contentsOf: url) else {
                 return nil
             }
 
             return .image(image)
         case .video:
+            guard let url = Bundle.module.url(
+                forResource: builtIn.resourceName,
+                withExtension: builtIn.resourceExtension
+            ) else {
+                return nil
+            }
+
             return .video(url)
         }
     }

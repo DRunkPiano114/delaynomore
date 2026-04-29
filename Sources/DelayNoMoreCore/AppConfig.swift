@@ -54,7 +54,7 @@ public struct AppConfig: Codable, Equatable {
     public static let breakMinuteRange = 1...(maximumDurationSeconds / 60)
 
     public static let `default` = AppConfig(
-        reminder: .builtIn(id: "cozy-cat-house"),
+        reminder: .builtIn(id: "pixel-diorama"),
         workSeconds: defaultWorkSeconds,
         breakSeconds: defaultBreakSeconds,
         repeats: false

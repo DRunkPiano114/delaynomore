@@ -89,8 +89,8 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertTrue(store.load().repeats)
     }
 
-    func testDefaultConfigUsesCatDenReminder() {
-        XCTAssertEqual(AppConfig.default.reminder, .builtIn(id: "cozy-cat-house"))
+    func testDefaultConfigUsesPixelDioramaReminder() {
+        XCTAssertEqual(AppConfig.default.reminder, .builtIn(id: "pixel-diorama"))
         XCTAssertFalse(AppConfig.default.repeats)
     }
 
