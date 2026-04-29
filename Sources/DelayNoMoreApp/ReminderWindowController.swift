@@ -66,6 +66,8 @@ final class ReminderWindowController {
 
     private var surfaces: [Surface] = []
 
+    var onSkipRequested: (() -> Void)?
+
     func show(media: ReminderMedia) -> Bool {
         guard let asset = ReminderMediaLibrary.asset(for: media) else {
             return false
@@ -100,6 +102,9 @@ final class ReminderWindowController {
                 animateMediaIntro(surface)
             }
         }
+
+        NSApp.activate(ignoringOtherApps: true)
+        surfaces.first?.window.makeKeyAndOrderFront(nil)
 
         return true
     }
@@ -272,7 +277,7 @@ final class ReminderWindowController {
     }
 
     private func makeOverlayWindow(frame: NSRect) -> NSPanel {
-        let window = NSPanel(
+        let window = KeyableReminderPanel(
             contentRect: frame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -287,6 +292,9 @@ final class ReminderWindowController {
         window.isReleasedWhenClosed = false
         window.hidesOnDeactivate = false
         window.alphaValue = 1
+        window.onSkipKey = { [weak self] in
+            self?.onSkipRequested?()
+        }
         return window
     }
 
@@ -539,5 +547,19 @@ final class ReminderWindowController {
         ].randomElement() ?? "break.prompt.breathe"
 
         return L10n.string(key)
+    }
+}
+
+private final class KeyableReminderPanel: NSPanel {
+    var onSkipKey: (() -> Void)?
+
+    override var canBecomeKey: Bool { true }
+
+    override func keyDown(with event: NSEvent) {
+        let escapeKeyCode: UInt16 = 53
+        let spaceKeyCode: UInt16 = 49
+        if event.keyCode == escapeKeyCode || event.keyCode == spaceKeyCode {
+            onSkipKey?()
+        }
     }
 }
