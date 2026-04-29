@@ -22,9 +22,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         config = store.load()
         model = TimerModel(config: config)
         reminderController = ReminderWindowController()
-        reminderController?.onSkipRequested = { [weak self] in
-            self?.endBreakEarly()
-        }
 
         buildMenu()
         startClock()

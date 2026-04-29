@@ -66,8 +66,6 @@ final class ReminderWindowController {
 
     private var surfaces: [Surface] = []
 
-    var onSkipRequested: (() -> Void)?
-
     func show(media: ReminderMedia) -> Bool {
         guard let asset = ReminderMediaLibrary.asset(for: media) else {
             return false
@@ -292,9 +290,6 @@ final class ReminderWindowController {
         window.isReleasedWhenClosed = false
         window.hidesOnDeactivate = false
         window.alphaValue = 1
-        window.onSkipKey = { [weak self] in
-            self?.onSkipRequested?()
-        }
         return window
     }
 
@@ -551,16 +546,11 @@ final class ReminderWindowController {
 }
 
 private final class KeyableReminderWindow: NSWindow {
-    var onSkipKey: (() -> Void)?
-
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
     override func keyDown(with event: NSEvent) {
-        let escapeKeyCode: UInt16 = 53
-        let spaceKeyCode: UInt16 = 49
-        if event.keyCode == escapeKeyCode || event.keyCode == spaceKeyCode {
-            onSkipKey?()
-        }
+        // Swallow all keys so they do not reach the app underneath.
+        // Break is ended only via the menu bar item.
     }
 }
