@@ -498,11 +498,11 @@ final class PixelSceneView: NSView {
             } else if let particle = Self.rainParticleImage {
                 let cell = CAEmitterCell()
                 cell.contents = particle
-                cell.birthRate = 32
+                cell.birthRate = 50
                 cell.lifetime = Float(stageBounds.height / max(120, 60 * s) + 0.4)
-                cell.velocity = -160 * s
+                cell.velocity = 160 * s
                 cell.velocityRange = 30
-                cell.emissionLongitude = -.pi / 2
+                cell.emissionLongitude = 0
                 cell.emissionRange = 0.05
                 cell.scale = max(s * 0.6, 1.0)
                 cell.scaleRange = 0.2

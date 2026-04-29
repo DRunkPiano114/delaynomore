@@ -148,22 +148,34 @@ enum SceneTemplate: CaseIterable {
         case .rainyWindow:
             return SceneDescriptor(
                 backgroundGradient: (
-                    top: NSColor(calibratedRed: 0.32, green: 0.40, blue: 0.50, alpha: 1),
-                    bottom: NSColor(calibratedRed: 0.20, green: 0.26, blue: 0.34, alpha: 1)
+                    top: NSColor(calibratedRed: 0.34, green: 0.42, blue: 0.52, alpha: 1),
+                    bottom: NSColor(calibratedRed: 0.24, green: 0.30, blue: 0.40, alpha: 1)
                 ),
-                groundColor: NSColor(calibratedRed: 0.16, green: 0.20, blue: 0.26, alpha: 1),
+                groundColor: NSColor(calibratedRed: 0.34, green: 0.24, blue: 0.16, alpha: 1),
                 backdrop: nil,
                 cast: [
                     SpriteSpec(
+                        kind: .asset(name: "prop-window-tan", fileExtension: "png", animates: false),
+                        pixelSize: CGSize(width: 96, height: 64),
+                        anchorX: 0.50,
+                        anchorY: .floating(yRatio: 0.88)
+                    ),
+                    SpriteSpec(
+                        kind: .asset(name: "prop-plant-leafy", fileExtension: "png", animates: false),
+                        pixelSize: CGSize(width: 48, height: 64),
+                        anchorX: 0.18,
+                        anchorY: .ground
+                    ),
+                    SpriteSpec(
                         kind: .character(pose: .idle),
                         pixelSize: CGSize(width: 32, height: 64),
-                        anchorX: 0.30,
+                        anchorX: 0.42,
                         anchorY: .ground
                     ),
                     SpriteSpec(
                         kind: .asset(name: "cast-mochi", fileExtension: "gif", animates: true),
                         pixelSize: CGSize(width: 96, height: 32),
-                        anchorX: 0.66,
+                        anchorX: 0.72,
                         anchorY: .ground
                     )
                 ],
