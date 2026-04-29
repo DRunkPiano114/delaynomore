@@ -276,10 +276,10 @@ final class ReminderWindowController {
         return Surface(window: window, content: .media(media))
     }
 
-    private func makeOverlayWindow(frame: NSRect) -> NSPanel {
-        let window = KeyableReminderPanel(
+    private func makeOverlayWindow(frame: NSRect) -> NSWindow {
+        let window = KeyableReminderWindow(
             contentRect: frame,
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
@@ -550,10 +550,11 @@ final class ReminderWindowController {
     }
 }
 
-private final class KeyableReminderPanel: NSPanel {
+private final class KeyableReminderWindow: NSWindow {
     var onSkipKey: (() -> Void)?
 
     override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 
     override func keyDown(with event: NSEvent) {
         let escapeKeyCode: UInt16 = 53
