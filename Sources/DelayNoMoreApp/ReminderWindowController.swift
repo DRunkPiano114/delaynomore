@@ -291,18 +291,22 @@ final class ReminderWindowController {
     }
 
     private func animatePixelIntro(_ surface: Surface) {
+        guard case .pixelScene(let scene) = surface.content else { return }
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         if reduceMotion {
             surface.window.alphaValue = 1
+            scene.startIntro()
             return
         }
 
         surface.window.alphaValue = 0
-        NSAnimationContext.runAnimationGroup { context in
+        NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.7
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             surface.window.animator().alphaValue = 1
-        }
+        }, completionHandler: {
+            scene.startIntro()
+        })
     }
 
     private func animateMediaIntro(_ surface: Surface) {

@@ -77,7 +77,6 @@ extension CharacterPose {
         switch self {
         case .idle: return "idle"
         case .phone: return "phone"
-        case .sitGround: return "sit-ground"
         }
     }
 }
@@ -123,6 +122,14 @@ final class PixelSceneView: NSView {
 
     func updateCountdown(_ seconds: Int) {
         countdownLabel.stringValue = formatClock(seconds)
+    }
+
+    func startIntro() {
+        typewriterTimer = SceneAnimations.typewriter(
+            topTextLabel,
+            text: L10n.string(template.introKey),
+            perCharSeconds: 0.04
+        )
     }
 
     private func setUp() {
@@ -221,12 +228,6 @@ final class PixelSceneView: NSView {
         topTextLabel.alignment = .center
         topTextLabel.maximumNumberOfLines = 2
         topTextLabel.lineBreakMode = .byWordWrapping
-        let introText = L10n.string(template.introKey)
-        typewriterTimer = SceneAnimations.typewriter(
-            topTextLabel,
-            text: introText,
-            perCharSeconds: 0.04
-        )
 
         countdownLabel.font = NSFont(name: "Toriko", size: 42)
             ?? .monospacedDigitSystemFont(ofSize: 42, weight: .medium)

@@ -14,7 +14,6 @@ enum TimeOfDay {
 enum CharacterPose {
     case idle
     case phone
-    case sitGround
 }
 
 enum AtmosphereKind {
