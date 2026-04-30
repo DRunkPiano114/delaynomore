@@ -8,7 +8,7 @@ Most break reminders show a notification you dismiss in one second. DelayNoMore 
 
 ## Why DelayNoMore
 
-- **Native and lightweight** — built in Swift. About 8 MB on disk and ~40 MB of memory at runtime.
+- **Native and lightweight** — built in Swift. ~11 MB on disk and ~40 MB of memory at runtime.
 - **Video takeover, not a black screen** — instead of dimming your display or showing text, it plays a calming video that makes you *want* to take a break.
 - **Works out of the box** — 6 built-in video reminders included. No setup, no configuration required.
 - **Simple on purpose** — one job, done well. No micro-breaks, no stats dashboards, no notification spam.
@@ -17,17 +17,7 @@ Most break reminders show a notification you dismiss in one second. DelayNoMore 
 
 Download the latest `DelayNoMore.zip` from [Releases](https://github.com/DRunkPiano114/delaynomore/releases), unzip, and drag `DelayNoMore.app` to your Applications folder.
 
-Since the app is not signed with an Apple Developer ID, macOS will block it on first launch.
-
-If you see **"DelayNoMore is damaged and can't be opened"**, run this in Terminal:
-
-```bash
-xattr -d com.apple.quarantine /Applications/DelayNoMore.app
-```
-
-This removes the macOS quarantine attribute that gets added to files downloaded from the internet. It does not modify the app itself.
-
-Then open the app normally. You only need to do this once.
+The app is signed with an Apple Developer ID and notarized by Apple, so it opens like any other Mac app — no Terminal commands required. Once installed, DelayNoMore checks for new versions automatically and updates in place.
 
 ## Features
 
@@ -35,7 +25,8 @@ Then open the app normally. You only need to do this once.
 - 6 built-in video reminders (cats, fireplace, rain, and more)
 - Custom image or video reminders
 - Hover-to-preview videos in settings
-- Configurable work and break durations
+- Configurable work and break durations, with optional auto-repeat
+- Automatic in-app updates
 
 ## Build from source
 

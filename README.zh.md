@@ -6,7 +6,7 @@
 
 ## 为什么选 DelayNoMore
 
-- **原生轻量** — 纯 Swift 构建。安装包约 8 MB，运行内存约 40 MB。
+- **原生轻量** — 纯 Swift 构建。安装后约 11 MB，运行内存约 40 MB。
 - **视频霸屏，不是黑屏** — 不只是把屏幕变暗或显示文字，而是播放舒缓的视频，让你愿意放下工作。
 - **开箱即用** — 内置 6 个视频提醒，不需要任何配置。
 - **只做一件事** — 没有微休息、没有统计面板、没有通知轰炸。简单，好用。
@@ -15,17 +15,7 @@
 
 从 [Releases](https://github.com/DRunkPiano114/delaynomore/releases) 下载最新的 `DelayNoMore.zip`，解压后将 `DelayNoMore.app` 拖入"应用程序"文件夹。
 
-由于应用未经 Apple 开发者签名，macOS 会在首次启动时阻止打开。
-
-如果看到 **"DelayNoMore 已损坏，无法打开"**，在终端中运行：
-
-```bash
-xattr -d com.apple.quarantine /Applications/DelayNoMore.app
-```
-
-这条命令会移除 macOS 给从网上下载的文件添加的隔离标记，不会修改应用本身。
-
-之后正常打开即可，只需执行一次。
+应用已用 Apple Developer ID 签名并通过 Apple 公证，可以像普通 Mac 应用一样直接打开，无需任何终端命令。安装后会自动检查更新并在后台升级。
 
 ## 功能
 
@@ -33,7 +23,8 @@ xattr -d com.apple.quarantine /Applications/DelayNoMore.app
 - 6 个内置视频提醒（猫咪、壁炉、雨声等）
 - 支持自定义图片或视频提醒
 - 设置中悬停预览视频
-- 可自定义工作和休息时长
+- 可自定义工作和休息时长，可选自动重复
+- 应用内自动更新
 
 ## 从源码构建
 
