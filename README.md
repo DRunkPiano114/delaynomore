@@ -4,13 +4,11 @@
 
 A minimal native macOS break reminder. Runs from the menu bar, counts down a work period, then takes over your screen with a looping video reminder for the entire break.
 
-Most break reminders show a notification you dismiss in one second. DelayNoMore doesn't let you do that — it fills your screen so you actually rest.
-
 ## Why DelayNoMore
 
 - **Native and lightweight** — built in Swift. ~11 MB on disk and ~40 MB of memory at runtime.
 - **Video takeover, not a black screen** — instead of dimming your display or showing text, it plays a calming video that makes you *want* to take a break.
-- **Works out of the box** — 6 built-in video reminders included. No setup, no configuration required.
+- **Works out of the box** — several built-in video reminders included. No setup, no configuration required.
 - **Simple on purpose** — one job, done well. No micro-breaks, no stats dashboards, no notification spam.
 
 ## Install
@@ -39,12 +37,14 @@ open .build/app/DelayNoMore.app
 
 ## Development
 
-| Command | What it does |
-|---|---|
-| `swift test` | Run unit tests |
-| `./scripts/dev.sh` | Kill any running instance, rebuild, and launch the .app |
-| `./scripts/check.sh` | Tests + .app bundle structure check (run before commit) |
-| `./scripts/build-app.sh` | Just build the .app bundle |
+
+| Command                  | What it does                                            |
+| ------------------------ | ------------------------------------------------------- |
+| `swift test`             | Run unit tests                                          |
+| `./scripts/dev.sh`       | Kill any running instance, rebuild, and launch the .app |
+| `./scripts/check.sh`     | Tests + .app bundle structure check (run before commit) |
+| `./scripts/build-app.sh` | Just build the .app bundle                              |
+
 
 ## License
 
