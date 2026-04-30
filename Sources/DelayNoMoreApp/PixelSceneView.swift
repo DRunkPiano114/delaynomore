@@ -238,15 +238,15 @@ final class PixelSceneView: NSView {
     }
 
     private func configureLabels() {
-        topTextLabel.font = NSFont(name: "Toriko", size: 56)
-            ?? .systemFont(ofSize: 56, weight: .semibold)
+        topTextLabel.font = NSFont(name: "Toriko", size: 80)
+            ?? .systemFont(ofSize: 80, weight: .semibold)
         topTextLabel.textColor = NSColor.white.withAlphaComponent(0.88)
         topTextLabel.alignment = .center
         topTextLabel.maximumNumberOfLines = 2
         topTextLabel.lineBreakMode = .byWordWrapping
 
-        countdownLabel.font = NSFont(name: "Toriko", size: 72)
-            ?? .monospacedDigitSystemFont(ofSize: 72, weight: .medium)
+        countdownLabel.font = NSFont(name: "Toriko", size: 108)
+            ?? .monospacedDigitSystemFont(ofSize: 108, weight: .medium)
         countdownLabel.textColor = NSColor.white.withAlphaComponent(0.7)
         countdownLabel.alignment = .center
     }
@@ -419,16 +419,16 @@ final class PixelSceneView: NSView {
 
         topTextLabel.frame = CGRect(
             x: 56,
-            y: min(stageFrame.maxY + 30, bounds.height - 110),
+            y: min(stageFrame.maxY - 18, bounds.height - 220),
             width: max(0, bounds.width - 112),
-            height: 84
+            height: 120
         )
 
         countdownLabel.frame = CGRect(
             x: 0,
-            y: max(32, stageFrame.minY - 110),
+            y: max(28, stageFrame.minY - 156),
             width: bounds.width,
-            height: 96
+            height: 140
         )
 
         layoutAtmosphere(stageBounds: stageBounds, groundY: groundY, scale: s)
