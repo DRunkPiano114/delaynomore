@@ -84,6 +84,33 @@ jobs:
           cd .build/app
           ditto -c -k --keepParent DelayNoMore.app "$GITHUB_WORKSPACE/DelayNoMore.zip"
 
+      - name: Sign update for Sparkle
+        id: sign_update
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          curl -fsSL -o /tmp/Sparkle.tar.xz \
+            https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz
+          mkdir -p /tmp/sparkle-tools
+          tar -xf /tmp/Sparkle.tar.xz -C /tmp/sparkle-tools
+
+          KEY_FILE="$RUNNER_TEMP/sparkle_private_key"
+          printf '%s' "$SPARKLE_PRIVATE_KEY" > "$KEY_FILE"
+
+          SIG_OUTPUT=$(/tmp/sparkle-tools/bin/sign_update -f "$KEY_FILE" DelayNoMore.zip)
+          rm "$KEY_FILE"
+
+          ED_SIG=$(printf '%s' "$SIG_OUTPUT" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+          LENGTH=$(printf '%s' "$SIG_OUTPUT" | sed -n 's/.*length="\([^"]*\)".*/\1/p')
+
+          if [ -z "$ED_SIG" ] || [ -z "$LENGTH" ]; then
+            echo "Error: failed to parse sign_update output: $SIG_OUTPUT" >&2
+            exit 1
+          fi
+
+          echo "ed_signature=$ED_SIG" >> "$GITHUB_OUTPUT"
+          echo "length=$LENGTH" >> "$GITHUB_OUTPUT"
+
       - name: Generate release notes
         run: |
           PREV_TAG=$(git tag --sort=-v:refname | grep '^v' | sed -n '2p')
@@ -148,3 +175,30 @@ jobs:
             --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: appcast-checkout
+
+      - name: Update Sparkle appcast
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          DOWNLOAD_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/DelayNoMore.zip"
+          PUBDATE=$(date -u '+%a, %d %b %Y %H:%M:%S +0000')
+
+          python3 scripts/update-appcast.py \
+            appcast-checkout/appcast.xml \
+            "$VERSION" \
+            "$DOWNLOAD_URL" \
+            "${{ steps.sign_update.outputs.length }}" \
+            "${{ steps.sign_update.outputs.ed_signature }}" \
+            "$PUBDATE"
+
+          cd appcast-checkout
+          git config user.email "actions@github.com"
+          git config user.name "github-actions"
+          git add appcast.xml
+          git commit -m "release: $GITHUB_REF_NAME"
+          git push origin gh-pages

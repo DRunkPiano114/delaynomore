@@ -6,6 +6,7 @@ APP_VERSION="${APP_VERSION:-$(git -C "$ROOT_DIR" describe --tags --abbrev=0 2>/d
 APP_DIR="$ROOT_DIR/.build/app/DelayNoMore.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
+FRAMEWORKS_DIR="$CONTENTS_DIR/Frameworks"
 
 cd "$ROOT_DIR"
 rm -rf "$ROOT_DIR/.build/release/"*.bundle
@@ -24,12 +25,47 @@ for bundle in "$ROOT_DIR/.build/release/"*.bundle; do
   cp -R "$bundle" "$RESOURCES_DIR/"
 done
 
+mkdir -p "$FRAMEWORKS_DIR"
+SPARKLE_FW=$(find "$ROOT_DIR/.build" -name "Sparkle.framework" -type d 2>/dev/null \
+  | grep -v 'XPCServices' \
+  | grep -v 'checkouts' \
+  | head -1)
+if [ -z "$SPARKLE_FW" ] || [ ! -d "$SPARKLE_FW" ]; then
+  echo "Error: Sparkle.framework not found in .build/" >&2
+  exit 1
+fi
+ditto "$SPARKLE_FW" "$FRAMEWORKS_DIR/Sparkle.framework"
+
 sed "s|__APP_VERSION__|${APP_VERSION}|g" \
   "$ROOT_DIR/App/Info.plist" \
   > "$CONTENTS_DIR/Info.plist"
 
 if [ -n "${SIGNING_IDENTITY:-}" ]; then
   ENTITLEMENTS="$ROOT_DIR/App/entitlements.plist"
+
+  SPARKLE_VERSION_DIR=$(find "$FRAMEWORKS_DIR/Sparkle.framework/Versions" -maxdepth 1 -mindepth 1 -type d ! -name 'Current' | head -1)
+
+  while IFS= read -r -d '' xpc; do
+    codesign --force --options runtime --timestamp \
+      --sign "$SIGNING_IDENTITY" \
+      "$xpc"
+  done < <(find "$SPARKLE_VERSION_DIR/XPCServices" -maxdepth 1 -mindepth 1 -name '*.xpc' -print0 2>/dev/null)
+
+  if [ -e "$SPARKLE_VERSION_DIR/Autoupdate" ]; then
+    codesign --force --options runtime --timestamp \
+      --sign "$SIGNING_IDENTITY" \
+      "$SPARKLE_VERSION_DIR/Autoupdate"
+  fi
+
+  if [ -d "$SPARKLE_VERSION_DIR/Updater.app" ]; then
+    codesign --force --options runtime --timestamp \
+      --sign "$SIGNING_IDENTITY" \
+      "$SPARKLE_VERSION_DIR/Updater.app"
+  fi
+
+  codesign --force --options runtime --timestamp \
+    --sign "$SIGNING_IDENTITY" \
+    "$FRAMEWORKS_DIR/Sparkle.framework"
 
   while IFS= read -r -d '' bundle; do
     codesign --force --options runtime --timestamp \

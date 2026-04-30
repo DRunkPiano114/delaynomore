@@ -12,18 +12,28 @@ let package = Package(
         .executable(name: "DelayNoMore", targets: ["DelayNoMoreApp"]),
         .library(name: "DelayNoMoreCore", targets: ["DelayNoMoreCore"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
+    ],
     targets: [
         .target(name: "DelayNoMoreCore"),
         .executableTarget(
             name: "DelayNoMoreApp",
-            dependencies: ["DelayNoMoreCore"],
+            dependencies: [
+                "DelayNoMoreCore",
+                .product(name: "Sparkle", package: "Sparkle")
+            ],
             resources: [
                 .process("Resources")
             ],
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("AVFoundation"),
-                .linkedFramework("AVKit")
+                .linkedFramework("AVKit"),
+                .unsafeFlags([
+                    "-Xlinker", "-rpath",
+                    "-Xlinker", "@executable_path/../Frameworks"
+                ])
             ]
         ),
         .testTarget(

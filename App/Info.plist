@@ -26,5 +26,11 @@
   <string>AppIcon</string>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>SUFeedURL</key>
+  <string>https://drunkpiano114.github.io/delaynomore/appcast.xml</string>
+  <key>SUPublicEDKey</key>
+  <string>jKM6wAMes4FHKOgWkD0oC0jPE0vdXvA+Nbn6RjMl4rA=</string>
+  <key>SUEnableAutomaticChecks</key>
+  <true/>
 </dict>
 </plist>

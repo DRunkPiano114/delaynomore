@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 import DelayNoMoreCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -16,6 +17,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
     private var reminderController: ReminderWindowController?
     private var settingsController: SettingsWindowController?
+
+    private let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.registerBundledFonts()
@@ -114,7 +121,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showSettings() {
         if settingsController == nil {
-            settingsController = SettingsWindowController(config: config) { [weak self] nextConfig in
+            settingsController = SettingsWindowController(
+                config: config,
+                updater: updaterController.updater
+            ) { [weak self] nextConfig in
                 self?.applyConfig(nextConfig)
             }
         }
