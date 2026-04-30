@@ -6,6 +6,19 @@
     <description>Updates for DelayNoMore</description>
     <language>en</language>
     <item>
+      <title>1.1.0</title>
+      <pubDate>Thu, 30 Apr 2026 13:47:47 +0000</pubDate>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://github.com/DRunkPiano114/delaynomore/releases/download/v1.1.0/DelayNoMore.zip"
+        sparkle:version="1.1.0"
+        sparkle:shortVersionString="1.1.0"
+        sparkle:edSignature="m7hJfsUB9PAkKg0/hKYm/BAnahYN3WZNYZHGFqBhjLk7Gu1QeRqGP+1Cxpg51nIhsoEf3IPkLcIAc9Uk+SDEDA=="
+        length="8769709"
+        type="application/octet-stream" />
+    </item>
+
+    <item>
       <title>1.0.3</title>
       <pubDate>Thu, 30 Apr 2026 08:26:16 +0000</pubDate>
       <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
