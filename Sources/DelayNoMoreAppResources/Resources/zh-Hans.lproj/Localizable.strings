@@ -64,6 +64,14 @@
 "button.ok" = "好";
 "button.download" = "下载";
 "button.later" = "稍后";
+"button.continue" = "继续";
+"button.cancel" = "取消";
+
+"import.progress.message" = "导入中…";
+"alert.largeVideo.title" = "视频较大";
+"alert.largeVideo.message" = "这个视频约 %1$@、时长大约 %2$d 分钟。较大的文件可能让休息开始时变慢。";
+"alert.importFailed.title" = "导入失败";
+"alert.importFailed.message" = "DelayNoMore 无法导入这个文件。请换一张图片或视频试试。";
 
 "update.failed.title" = "检查更新失败";
 "update.failed.message" = "无法连接 GitHub，请稍后再试。";

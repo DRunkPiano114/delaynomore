@@ -31,10 +31,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model = TimerModel(config: config)
         reminderController = ReminderWindowController()
 
+        reapCustomMediaOrphans()
+
         buildMenu()
         startClock()
 
         updateMenu()
+    }
+
+    private func reapCustomMediaOrphans() {
+        let directory = CustomMediaStore.defaultStorageDirectory()
+        let keep: URL?
+        if let path = config.reminder?.customPath, FileManager.default.fileExists(atPath: path) {
+            keep = URL(fileURLWithPath: path)
+        } else {
+            keep = nil
+        }
+        CustomMediaStore.reapOrphans(in: directory, keep: keep)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -96,13 +109,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func start() {
-        guard validReminder() != nil || chooseMedia() else {
+        if validReminder() != nil {
+            model.start()
             updateMenu()
             return
         }
 
-        model.start()
-        updateMenu()
+        Task { @MainActor in
+            if await self.chooseMedia() {
+                self.model.start()
+            }
+            self.updateMenu()
+        }
     }
 
     @objc private func pause() {
@@ -144,54 +162,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showReminderOrPromptForMedia() {
-        guard let reminder = validReminder() else {
-            showAlert(
-                title: L10n.string("alert.chooseMedia.title"),
-                message: L10n.string("alert.chooseMedia.message")
-            )
-
-            guard chooseMedia(), let reminder = validReminder() else {
-                _ = model.skipRest()
-                return
-            }
-
-            _ = reminderController?.show(media: reminder)
+        if let reminder = validReminder(),
+           reminderController?.show(media: reminder) == true {
             return
         }
 
-        if reminderController?.show(media: reminder) != true {
-            showAlert(
-                title: L10n.string("alert.mediaCouldNotLoad.title"),
-                message: L10n.string("alert.mediaCouldNotLoad.message")
-            )
+        let priorReminderExists = validReminder() != nil
+        showAlert(
+            title: L10n.string(priorReminderExists ? "alert.mediaCouldNotLoad.title" : "alert.chooseMedia.title"),
+            message: L10n.string(priorReminderExists ? "alert.mediaCouldNotLoad.message" : "alert.chooseMedia.message")
+        )
 
-            guard chooseMedia(), let reminder = validReminder() else {
-                _ = model.skipRest()
+        Task { @MainActor in
+            guard await self.chooseMedia(),
+                  let reminder = self.validReminder() else {
+                _ = self.model.skipRest()
+                self.updateMenu()
                 return
             }
-
-            _ = reminderController?.show(media: reminder)
+            _ = self.reminderController?.show(media: reminder)
+            self.updateMenu()
         }
     }
 
-    private func chooseMedia() -> Bool {
-        let panel = NSOpenPanel()
-        panel.title = L10n.string("panel.chooseMedia.title")
-        panel.message = L10n.string("panel.chooseMedia.message")
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = ReminderMediaLibrary.allowedContentTypes
-
-        guard panel.runModal() == .OK, let url = panel.url else {
-            return false
-        }
-
-        guard let reminder = ReminderMediaLibrary.media(for: url) else {
-            showAlert(
-                title: L10n.string("alert.unsupportedMedia.title"),
-                message: L10n.string("alert.unsupportedMedia.message")
-            )
+    @MainActor
+    private func chooseMedia() async -> Bool {
+        let anchor = settingsController?.window
+        guard let reminder = await MediaImportCoordinator.presentChooser(anchor: anchor) else {
             return false
         }
 

@@ -392,14 +392,9 @@ final class ReminderWindowController {
 
     private static func videoSize(for url: URL) -> NSSize? {
         let asset = AVURLAsset(url: url)
-        let generator = AVAssetImageGenerator(asset: asset)
-        generator.appliesPreferredTrackTransform = true
-
-        guard let image = try? generator.copyCGImage(at: .zero, actualTime: nil) else {
-            return nil
-        }
-
-        return NSSize(width: image.width, height: image.height)
+        guard let track = asset.tracks(withMediaType: .video).first else { return nil }
+        let oriented = track.naturalSize.applying(track.preferredTransform)
+        return NSSize(width: abs(oriented.width), height: abs(oriented.height))
     }
 
     private static func makeMediaContentView(

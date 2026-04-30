@@ -124,25 +124,49 @@ enum ReminderMediaLibrary {
         }
     }
 
-    private static var previewCache: [String: NSImage] = [:]
+    private static let previewCache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.countLimit = 8
+        return cache
+    }()
 
     static func previewImage(for media: ReminderMedia?) -> NSImage? {
         guard let media else { return nil }
 
-        let key = "\(media.kind.rawValue):\(media.identifier)"
-        if let cached = previewCache[key] { return cached }
+        let key = "\(media.kind.rawValue):\(media.identifier)" as NSString
+        if let cached = previewCache.object(forKey: key) { return cached }
 
         guard let asset = asset(for: media) else { return nil }
 
         let image: NSImage?
         switch asset {
-        case .image(let img): image = img
+        case .image(let img): image = downsampledThumbnail(of: img)
         case .video(let url): image = videoThumbnail(url: url)
         case .pixelScene: image = PixelSceneAssets.previewThumbnail()
         }
 
-        if let image { previewCache[key] = image }
+        if let image { previewCache.setObject(image, forKey: key) }
         return image
+    }
+
+    private static func downsampledThumbnail(of image: NSImage, maxEdge: CGFloat = 256) -> NSImage {
+        let size = image.size
+        guard max(size.width, size.height) > maxEdge, size.width > 0, size.height > 0 else {
+            return image
+        }
+
+        let scale = maxEdge / max(size.width, size.height)
+        let target = NSSize(width: size.width * scale, height: size.height * scale)
+        let thumb = NSImage(size: target)
+        thumb.lockFocus()
+        image.draw(
+            in: NSRect(origin: .zero, size: target),
+            from: NSRect(origin: .zero, size: size),
+            operation: .copy,
+            fraction: 1.0
+        )
+        thumb.unlockFocus()
+        return thumb
     }
 
     static func videoURL(for media: ReminderMedia?) -> URL? {

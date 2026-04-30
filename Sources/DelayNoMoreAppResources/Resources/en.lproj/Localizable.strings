@@ -64,6 +64,14 @@
 "button.ok" = "OK";
 "button.download" = "Download";
 "button.later" = "Later";
+"button.continue" = "Continue";
+"button.cancel" = "Cancel";
+
+"import.progress.message" = "Importing…";
+"alert.largeVideo.title" = "Large Video";
+"alert.largeVideo.message" = "This video is %1$@ and about %2$d minutes long. Importing larger files may slow break startup.";
+"alert.importFailed.title" = "Couldn't Import";
+"alert.importFailed.message" = "DelayNoMore couldn't import that file. Try a different image or video.";
 
 "update.failed.title" = "Update Check Failed";
 "update.failed.message" = "Could not reach GitHub. Try again later.";

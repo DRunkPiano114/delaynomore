@@ -363,19 +363,15 @@ struct SettingsView: View {
     }
 
     private func chooseMedia() {
-        let panel = NSOpenPanel()
-        panel.title = L10n.string("panel.chooseMedia.title")
-        panel.message = L10n.string("panel.chooseMedia.message")
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = ReminderMediaLibrary.allowedContentTypes
+        Task { @MainActor in
+            let anchor = NSApp.keyWindow
+            guard let reminder = await MediaImportCoordinator.presentChooser(anchor: anchor) else {
+                return
+            }
 
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        guard let reminder = ReminderMediaLibrary.media(for: url) else { return }
-
-        store.config.reminder = reminder
-        onChange(store.config)
+            store.config.reminder = reminder
+            onChange(store.config)
+        }
     }
 }
 
