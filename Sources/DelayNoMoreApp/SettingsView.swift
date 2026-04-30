@@ -2,6 +2,7 @@ import SwiftUI
 import AVFoundation
 import AppKit
 import DelayNoMoreCore
+import DelayNoMoreAppResources
 
 private enum SettingsLayout {
     static let windowWidth: CGFloat = 580
@@ -35,7 +36,7 @@ private struct PixelGIFView: NSViewRepresentable {
         view.imageScaling = .scaleAxesIndependently
         view.animates = true
         view.wantsLayer = true
-        if let url = Bundle.module.url(forResource: resource, withExtension: ext),
+        if let url = AppResources.bundle.url(forResource: resource, withExtension: ext),
            let img = NSImage(contentsOf: url) {
             view.image = img
         }
@@ -107,7 +108,7 @@ struct SettingsView: View {
                 .onTapGesture { clearTimeFocus() }
 
             VStack(alignment: .leading, spacing: 18) {
-                Text("settings.title", bundle: .module)
+                Text("settings.title", bundle: AppResources.bundle)
                     .font(torikoFont(size: 40))
                     .foregroundColor(CozyPalette.ink)
                     .contentShape(Rectangle())
@@ -250,10 +251,10 @@ struct SettingsView: View {
                 .background(CozyPalette.amber, in: RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("settings.timer.repeat", bundle: .module)
+                Text("settings.timer.repeat", bundle: AppResources.bundle)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(CozyPalette.ink)
-                Text("settings.timer.repeat.subtitle", bundle: .module)
+                Text("settings.timer.repeat.subtitle", bundle: AppResources.bundle)
                     .font(.system(size: 12))
                     .foregroundColor(CozyPalette.inkSoft)
             }
@@ -291,7 +292,7 @@ struct SettingsView: View {
                         store.isCheckingForUpdates
                             ? LocalizedStringKey("settings.checking")
                             : LocalizedStringKey("settings.checkForUpdates"),
-                        bundle: .module
+                        bundle: AppResources.bundle
                     )
                     .font(.system(size: 13))
                 }
@@ -310,7 +311,7 @@ struct SettingsView: View {
                 clearTimeFocus()
                 onDismiss()
             } label: {
-                Text("settings.done", bundle: .module)
+                Text("settings.done", bundle: AppResources.bundle)
                     .font(torikoFont(size: 26))
                     .foregroundColor(.white)
                     .offset(y: torikoCenterOffset(forSize: 26))
@@ -333,7 +334,7 @@ struct SettingsView: View {
                 .font(.system(size: 22, weight: .medium))
                 .foregroundColor(CozyPalette.amber)
                 .frame(width: 32, height: 32, alignment: .center)
-            Text(title, bundle: .module)
+            Text(title, bundle: AppResources.bundle)
                 .font(torikoFont(size: 28))
                 .foregroundColor(CozyPalette.inkSoft)
                 .offset(y: torikoCenterOffset(forSize: 28))
@@ -398,7 +399,7 @@ private struct PillToggleButton: View {
             .frame(width: 56, height: 30)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text("settings.timer.repeat", bundle: .module))
+        .accessibilityLabel(Text("settings.timer.repeat", bundle: AppResources.bundle))
         .accessibilityValue(isOn ? "On" : "Off")
         .animation(.easeOut(duration: 0.16), value: isOn)
     }
@@ -448,10 +449,10 @@ private struct DurationCard: View {
                     .background(color, in: RoundedRectangle(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title, bundle: .module)
+                    Text(title, bundle: AppResources.bundle)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(CozyPalette.ink)
-                    Text(subtitle, bundle: .module)
+                    Text(subtitle, bundle: AppResources.bundle)
                         .font(.system(size: 12))
                         .foregroundColor(CozyPalette.inkSoft)
                 }
@@ -519,7 +520,7 @@ private struct DurationCard: View {
         onCommit: @escaping (Int) -> Int
     ) -> some View {
         VStack(spacing: 5) {
-            Text(unit, bundle: .module)
+            Text(unit, bundle: AppResources.bundle)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(CozyPalette.inkSoft)
 

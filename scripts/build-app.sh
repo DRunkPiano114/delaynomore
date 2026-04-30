@@ -18,7 +18,7 @@ cp "$ROOT_DIR/.build/release/DelayNoMore" "$MACOS_DIR/DelayNoMore"
 
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 mkdir -p "$RESOURCES_DIR"
-cp "$ROOT_DIR/Sources/DelayNoMoreApp/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+cp "$ROOT_DIR/Sources/DelayNoMoreAppResources/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
 
 for bundle in "$ROOT_DIR/.build/release/"*.bundle; do
   [ -e "$bundle" ] || continue

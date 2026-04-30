@@ -17,14 +17,18 @@ let package = Package(
     ],
     targets: [
         .target(name: "DelayNoMoreCore"),
+        .target(
+            name: "DelayNoMoreAppResources",
+            resources: [
+                .process("Resources")
+            ]
+        ),
         .executableTarget(
             name: "DelayNoMoreApp",
             dependencies: [
                 "DelayNoMoreCore",
+                "DelayNoMoreAppResources",
                 .product(name: "Sparkle", package: "Sparkle")
-            ],
-            resources: [
-                .process("Resources")
             ],
             linkerSettings: [
                 .linkedFramework("AppKit"),

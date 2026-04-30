@@ -1,6 +1,7 @@
 import AppKit
 import Sparkle
 import DelayNoMoreCore
+import DelayNoMoreAppResources
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -356,7 +357,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static func registerBundledFonts() {
-        guard let url = Bundle.module.url(forResource: "Toriko", withExtension: "ttf") else {
+        guard let url = AppResources.bundle.url(forResource: "Toriko", withExtension: "ttf") else {
             return
         }
         CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)

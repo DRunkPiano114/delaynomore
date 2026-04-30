@@ -1,5 +1,6 @@
 import AppKit
 import DelayNoMoreCore
+import DelayNoMoreAppResources
 
 enum PixelSceneAssets {
     static let characterIDs = ["03", "07", "09", "12", "18"]
@@ -9,29 +10,29 @@ enum PixelSceneAssets {
     }
 
     static var catURL: URL? {
-        Bundle.module.url(forResource: "cast-mochi", withExtension: "gif")
+        AppResources.bundle.url(forResource: "cast-mochi", withExtension: "gif")
     }
 
     static func randomCharacterURL(pose: CharacterPose) -> URL? {
         let id = characterIDs.randomElement() ?? "07"
-        return Bundle.module.url(forResource: "char-\(id)-\(pose.assetSuffix)", withExtension: "png")
+        return AppResources.bundle.url(forResource: "char-\(id)-\(pose.assetSuffix)", withExtension: "png")
     }
 
     static var previewCharacterURL: URL? {
-        Bundle.module.url(forResource: "char-07-idle", withExtension: "png")
+        AppResources.bundle.url(forResource: "char-07-idle", withExtension: "png")
     }
 
     static var campfireURL: URL? {
-        Bundle.module.url(forResource: "prop-campfire", withExtension: "gif")
+        AppResources.bundle.url(forResource: "prop-campfire", withExtension: "gif")
     }
 
     static var emoteSleepsURL: URL? {
-        Bundle.module.url(forResource: "emote-sleeps", withExtension: "png")
+        AppResources.bundle.url(forResource: "emote-sleeps", withExtension: "png")
     }
 
     static var butterflyURLs: [URL] {
         ["atm-butterfly", "atm-butterfly-2"].compactMap {
-            Bundle.module.url(forResource: $0, withExtension: "gif")
+            AppResources.bundle.url(forResource: $0, withExtension: "gif")
         }
     }
 
@@ -197,7 +198,7 @@ final class PixelSceneView: NSView {
 
     private func configureBackdrop() {
         guard let backdrop = descriptor.backdrop,
-              let url = Bundle.module.url(forResource: backdrop.imageName, withExtension: "png"),
+              let url = AppResources.bundle.url(forResource: backdrop.imageName, withExtension: "png"),
               let img = NSImage(contentsOf: url) else { return }
         backdropView.image = img
         backdropView.imageScaling = .scaleAxesIndependently
@@ -216,7 +217,7 @@ final class PixelSceneView: NSView {
                     view.image = img
                 }
             case .asset(let name, let ext, let animates):
-                if let url = Bundle.module.url(forResource: name, withExtension: ext),
+                if let url = AppResources.bundle.url(forResource: name, withExtension: ext),
                    let img = NSImage(contentsOf: url) {
                     view.image = img
                     view.animates = animates

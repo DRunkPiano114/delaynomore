@@ -1,6 +1,7 @@
 import AppKit
 import AVFoundation
 import DelayNoMoreCore
+import DelayNoMoreAppResources
 import UniformTypeIdentifiers
 
 enum ReminderMediaAsset {
@@ -167,7 +168,7 @@ enum ReminderMediaLibrary {
         case .pixelScene:
             return PixelSceneAssets.areAvailable ? .pixelScene : nil
         case .image:
-            guard let url = Bundle.module.url(
+            guard let url = AppResources.bundle.url(
                 forResource: builtIn.resourceName,
                 withExtension: builtIn.resourceExtension
             ),
@@ -177,7 +178,7 @@ enum ReminderMediaLibrary {
 
             return .image(image)
         case .video:
-            guard let url = Bundle.module.url(
+            guard let url = AppResources.bundle.url(
                 forResource: builtIn.resourceName,
                 withExtension: builtIn.resourceExtension
             ) else {
