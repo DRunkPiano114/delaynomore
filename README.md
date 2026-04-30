@@ -2,13 +2,14 @@
 
 [中文说明](README.zh.md)
 
-A minimal native macOS break reminder. Runs from the menu bar, counts down a work period, then takes over your screen with a looping video reminder for the entire break.
+A minimal native macOS break reminder. Runs from the menu bar, counts down a work period, then takes over your screen with a looping video or picture reminder for the entire break.
 
 ## Why DelayNoMore
 
 - **Native and lightweight** — built in Swift. ~11 MB on disk and ~40 MB of memory at runtime.
-- **Video takeover, not a black screen** — instead of dimming your display or showing text, it plays a calming video that makes you *want* to take a break.
+- **Video takeover, not a black screen** — It plays a calming video that makes you *want* to take a break.
 - **Works out of the box** — several built-in video reminders included. No setup, no configuration required.
+- **Bring your own** — drop in any image or video as your reminder. Personal media often pulls you out of work better than stock clips.
 - **Simple on purpose** — one job, done well. No micro-breaks, no stats dashboards, no notification spam.
 
 ## Install
