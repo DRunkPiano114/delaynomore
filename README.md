@@ -4,8 +4,6 @@
 
 A minimal native macOS break reminder. Runs from the menu bar, counts down a work period, then takes over your screen with a looping video or picture reminder for the entire break.
 
-<video src="https://github.com/DRunkPiano114/delaynomore/raw/main/docs/demo.mp4" controls muted playsinline width="100%"></video>
-
 ## Why DelayNoMore
 
 - **Native and lightweight** — built in Swift. ~11 MB on disk and ~40 MB of memory at runtime.
