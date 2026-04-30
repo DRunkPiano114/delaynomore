@@ -2,6 +2,8 @@
 
 一个简洁的 macOS 原生休息提醒工具。在菜单栏运行，倒计时工作时间，然后用循环视频或图片霸占你的屏幕，强制你休息。
 
+<video src="https://github.com/DRunkPiano114/delaynomore/raw/main/docs/demo.mp4" controls muted playsinline width="100%"></video>
+
 ## 为什么选 DelayNoMore
 
 - **原生轻量** — 纯 Swift 构建。安装后约 11 MB，运行内存约 40 MB。
