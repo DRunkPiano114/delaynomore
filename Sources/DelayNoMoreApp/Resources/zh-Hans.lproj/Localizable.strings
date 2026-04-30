@@ -39,7 +39,7 @@
 "settings.section.timer" = "计时器";
 "settings.media.custom" = "自定义...";
 "settings.media.none" = "无";
-"settings.media.pixel" = "像素小屋";
+"settings.media.pixel" = "像素";
 
 "pixel.scene.intro.nightCamp" = "夜晚属于你。Mochi 在陪你。";
 "pixel.scene.intro.morningBalcony" = "早晨。世界正在醒来。";

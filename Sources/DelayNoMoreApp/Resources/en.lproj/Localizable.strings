@@ -39,7 +39,7 @@
 "settings.section.timer" = "Timer";
 "settings.media.custom" = "Custom...";
 "settings.media.none" = "None";
-"settings.media.pixel" = "Pixel Diorama";
+"settings.media.pixel" = "Pixel";
 
 "pixel.scene.intro.nightCamp" = "The night is yours. Mochi is here.";
 "pixel.scene.intro.morningBalcony" = "Morning. The world is waking up.";
