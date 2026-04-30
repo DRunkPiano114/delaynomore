@@ -1,4 +1,4 @@
-# DelayNoMore
+<h1 align="center">DelayNoMore</h1>
 
 一个简洁的 macOS 原生休息提醒工具。在菜单栏运行，倒计时工作时间，然后用循环视频或图片霸占你的屏幕，强制你休息。
 

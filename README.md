@@ -1,4 +1,4 @@
-# DelayNoMore
+<h1 align="center">DelayNoMore</h1>
 
 <p align="center"><a href="README.zh.md">中文</a></p>
 
