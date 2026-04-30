@@ -59,6 +59,36 @@ jobs:
           export APP_VERSION
           bash scripts/build-app.sh
 
+      - name: Smoke test launch
+        run: |
+          # Move .app outside the workspace and clear the SwiftPM build cache so
+          # the binary cannot fall back to .build/release/<bundle>. Forces resource
+          # loading from .app/Contents/Resources, mirroring what end users hit.
+          SMOKE_DIR=$(mktemp -d)
+          cp -R .build/app/DelayNoMore.app "$SMOKE_DIR/DelayNoMore.app"
+          rm -rf .build/release .build/arm64-apple-macosx
+
+          "$SMOKE_DIR/DelayNoMore.app/Contents/MacOS/DelayNoMore" >/tmp/smoke.log 2>&1 &
+          APP_PID=$!
+
+          for _ in 1 2 3 4 5; do
+            sleep 1
+            kill -0 "$APP_PID" 2>/dev/null || break
+          done
+
+          if kill -0 "$APP_PID" 2>/dev/null; then
+            echo "OK: app stayed alive 5 s"
+            kill "$APP_PID" 2>/dev/null || true
+            wait "$APP_PID" 2>/dev/null || true
+          else
+            echo "FAIL: app exited before 5 s"
+            echo "--- launch.log ---"
+            cat /tmp/smoke.log
+            exit 1
+          fi
+
+          rm -rf "$SMOKE_DIR"
+
       - name: Notarize and staple
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}

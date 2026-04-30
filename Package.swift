@@ -42,7 +42,7 @@ let package = Package(
         ),
         .testTarget(
             name: "DelayNoMoreTests",
-            dependencies: ["DelayNoMoreCore"]
+            dependencies: ["DelayNoMoreCore", "DelayNoMoreAppResources"]
         )
     ]
 )
