@@ -4,6 +4,12 @@
 
 https://github.com/user-attachments/assets/e08c8b13-a64f-46c5-8c95-612b0cc67c02
 
+<p align="center"><i>演示：工作时间结束后，舒缓的视频/图片霸占整个屏幕，覆盖整个休息时段。</i></p>
+
+<p align="center"><img src="docs/pixel-break.png" alt="像素风休息画面" width="720"></p>
+
+<p align="center"><i>图片模式：任意静态图都能作为休息画面，倒计时叠在下方。</i></p>
+
 ## 为什么选 DelayNoMore
 
 - **原生轻量** — 纯 Swift 构建。安装后约 11 MB，运行内存约 40 MB。

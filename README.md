@@ -1,10 +1,16 @@
 # DelayNoMore
 
-[中文说明](README.zh.md)
+<p align="center"><a href="README.zh.md">中文</a></p>
 
 A minimal native macOS break reminder. Runs from the menu bar, counts down a work period, then takes over your screen with a looping video or picture reminder for the entire break.
 
 https://github.com/user-attachments/assets/e08c8b13-a64f-46c5-8c95-612b0cc67c02
+
+<p align="center"><i>Demo: when the work timer ends, a calming video/picture takes over the wholescreen for the entire break.</i></p>
+
+<p align="center"><img src="docs/pixel-break.png" alt="Pixel-art break scene" width="720"></p>
+
+<p align="center"><i>Picture mode: any still image becomes the break view, with the countdown overlaid.</i></p>
 
 ## Why DelayNoMore
 
